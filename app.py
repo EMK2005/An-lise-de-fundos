@@ -23,11 +23,15 @@ DEFAULT_DATA = {
     "resumo_executivo": None,
     "score_geral": None,
     "score_justificativa": None,
+    "score_dimensoes": None,
     "rentabilidade": {
-        "benchmark_nome": None, "serie_historica": [], "rentabilidade_12m_fundo": None,
-        "rentabilidade_12m_benchmark": None, "rentabilidade_24m_fundo": None,
-        "rentabilidade_inicio_fundo": None, "percentual_do_benchmark": None,
+        "benchmark_nome": None, "serie_historica": [], "retornos_por_periodo": [],
+        "rentabilidade_12m_fundo": None, "rentabilidade_12m_benchmark": None,
+        "rentabilidade_24m_fundo": None, "rentabilidade_inicio_fundo": None,
+        "percentual_do_benchmark": None,
     },
+    "analise_oportunidade_cdi": None,
+    "analise_risco": None,
     "risco": {
         "classificacao_risco": None, "escala_risco_1a5": None, "volatilidade_12m": None,
         "drawdown_maximo": None, "indice_sharpe": None,
@@ -39,6 +43,7 @@ DEFAULT_DATA = {
     "composicao_carteira": [],
     "patrimonio_liquido": None,
     "numero_cotistas": None,
+    "pontos_positivos": [],
     "riscos_principais": [],
     "pontos_atencao": [],
 }
