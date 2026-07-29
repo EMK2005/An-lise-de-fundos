@@ -7,8 +7,9 @@ import anthropic
 from jinja2 import Template
 
 from prompt import EXTRACTION_PROMPT
+from prompt_carteira import EXTRACTION_PROMPT_CARTEIRA
 
-st.set_page_config(page_title="Analisador de fundos", layout="wide")
+st.set_page_config(page_title="Analisador de investimentos", layout="wide")
 
 MODEL = "claude-sonnet-5"
 
@@ -46,6 +47,43 @@ DEFAULT_DATA = {
     "pontos_positivos": [],
     "riscos_principais": [],
     "pontos_atencao": [],
+}
+
+# Schema de defaults para a análise de carteira.
+DEFAULT_DATA_CARTEIRA = {
+    "cliente": {"perfil_risco": None, "data_referencia": None, "patrimonio_total": None},
+    "contexto_mercado": {
+        "selic_meta": None, "cdi_anual": None, "ipca_12m": None, "data_referencia_indices": None,
+    },
+    "resumo_executivo": None,
+    "ativos": [],
+    "concentracao_por_categoria": [],
+    "concentracao_por_instituicao": [],
+    "top_10_posicoes": [],
+    "distribuicao_qualidade": [],
+    "leitura_diversificacao": None,
+    "leitura_qualidade": None,
+    "leitura_top10": None,
+    "riscos_identificados": [],
+    "destaques_positivos": [],
+    "proximos_passos": [],
+    "observacao_outliers": None,
+}
+
+# Defaults por ativo individual — protege o template contra ativos com campos
+# ausentes (ex: uma versão futura do prompt que adicione um campo novo).
+ASSET_DEFAULTS = {
+    "nome": "Ativo não identificado",
+    "categoria": None,
+    "instituicao": None,
+    "valor": None,
+    "percentual_pl": 0,
+    "rentabilidade_periodo": None,
+    "isento_ir": False,
+    "percentual_cdi_equivalente": None,
+    "classificacao": "Em validação",
+    "vencimento_ou_liquidez": None,
+    "observacao": None,
 }
 
 
@@ -129,6 +167,47 @@ def extract_fund_data(pdf_bytes: bytes, prompt_text: str) -> dict:
     return parse_json_response(raw_text)
 
 
+@st.cache_data(show_spinner=False)
+def extract_portfolio_data(pdf_bytes: bytes, prompt_text: str) -> dict:
+    """Envia o PDF da carteira pra Claude e retorna os dados estruturados.
+    Usa streaming (em vez de messages.create) porque carteiras com muitos ativos
+    podem gerar respostas longas — streaming evita o limite prático de tokens de
+    saída de chamadas não-streaming, permitindo um max_tokens bem mais alto."""
+    client = get_client()
+    pdf_b64 = base64.standard_b64encode(pdf_bytes).decode("utf-8")
+
+    with client.messages.stream(
+        model=MODEL,
+        max_tokens=24000,
+        messages=[
+            {
+                "role": "user",
+                "content": [
+                    {
+                        "type": "document",
+                        "source": {
+                            "type": "base64",
+                            "media_type": "application/pdf",
+                            "data": pdf_b64,
+                        },
+                    },
+                    {"type": "text", "text": prompt_text},
+                ],
+            }
+        ],
+    ) as stream:
+        for _ in stream.text_stream:
+            pass  # consome o stream; não precisamos exibir token a token na UI
+        message = stream.get_final_message()
+
+    raw_text = "".join(block.text for block in message.content if block.type == "text")
+
+    if message.stop_reason == "max_tokens":
+        raise ResponseTruncatedError(raw_text)
+
+    return parse_json_response(raw_text)
+
+
 # Mapeia a classificação textual de risco pra escala 1-5, usada como fallback
 # quando o modelo não retorna o número (evita o medidor de risco ficar com uma
 # cor que não bate com o texto, ex: "Baixo" pintado de âmbar).
@@ -158,14 +237,21 @@ def render_report(data: dict) -> str:
     return template.render(data=data)
 
 
-def main():
-    st.title("Analisador de fundos de investimento")
+def render_portfolio_report(data: dict) -> str:
+    data = fill_defaults(data, DEFAULT_DATA_CARTEIRA)
+    data["ativos"] = [fill_defaults(a, ASSET_DEFAULTS) for a in data["ativos"]]
+    with open("template_carteira.html", "r", encoding="utf-8") as f:
+        template = Template(f.read())
+    return template.render(data=data)
+
+
+def main_fundo():
     st.caption(
         "Anexe a lâmina, fact sheet ou relatório em PDF de um fundo para gerar "
         "uma análise visual detalhada."
     )
 
-    uploaded_file = st.file_uploader("PDF do fundo", type=["pdf"])
+    uploaded_file = st.file_uploader("PDF do fundo", type=["pdf"], key="upload_fundo")
 
     if not uploaded_file:
         return
@@ -173,7 +259,7 @@ def main():
     file_bytes = uploaded_file.read()
     file_hash = hashlib.sha256(file_bytes).hexdigest()[:10]
 
-    if st.button("Gerar análise", type="primary"):
+    if st.button("Gerar análise", type="primary", key="btn_fundo"):
         with st.spinner("Lendo o documento e extraindo os dados com a Claude..."):
             try:
                 data = extract_fund_data(file_bytes, EXTRACTION_PROMPT)
@@ -197,9 +283,9 @@ def main():
                 st.error(f"Erro na chamada da API: {e}")
                 return
 
-        st.session_state[f"report_{file_hash}"] = data
+        st.session_state[f"report_fundo_{file_hash}"] = data
 
-    report_data = st.session_state.get(f"report_{file_hash}")
+    report_data = st.session_state.get(f"report_fundo_{file_hash}")
 
     if report_data:
         html = render_report(report_data)
@@ -211,12 +297,91 @@ def main():
                 data=html,
                 file_name=f"analise_{report_data.get('fundo', {}).get('nome', 'fundo')}.html",
                 mime="text/html",
+                key="download_fundo",
             )
         with col2:
             with st.expander("Ver dados extraídos (JSON)"):
                 st.json(report_data)
 
         st.components.v1.html(html, height=2600, scrolling=True)
+
+
+def main_carteira():
+    st.caption(
+        "Anexe o extrato/posição consolidada em PDF da carteira para gerar uma "
+        "análise completa de risco, concentração e qualidade dos ativos."
+    )
+
+    uploaded_file = st.file_uploader("PDF da carteira", type=["pdf"], key="upload_carteira")
+
+    if not uploaded_file:
+        return
+
+    file_bytes = uploaded_file.read()
+    file_hash = hashlib.sha256(file_bytes).hexdigest()[:10]
+
+    if st.button("Gerar análise", type="primary", key="btn_carteira"):
+        with st.spinner(
+            "Lendo o documento e classificando os ativos com a Claude... "
+            "carteiras grandes podem levar um pouco mais de tempo."
+        ):
+            try:
+                data = extract_portfolio_data(file_bytes, EXTRACTION_PROMPT_CARTEIRA)
+            except ResponseTruncatedError as e:
+                st.error(
+                    "A resposta da Claude foi cortada antes de terminar (a carteira é "
+                    "muito extensa para o limite de tokens de saída atual). Pode ser "
+                    "necessário aumentar ainda mais o `max_tokens` em app.py."
+                )
+                with st.expander("Ver resposta parcial (debug)"):
+                    st.code(e.partial_text)
+                return
+            except json.JSONDecodeError:
+                st.error(
+                    "Não consegui interpretar a resposta do modelo em JSON. "
+                    "Tente gerar novamente — às vezes ajuda re-rodar."
+                )
+                return
+            except anthropic.APIError as e:
+                st.error(f"Erro na chamada da API: {e}")
+                return
+
+        st.session_state[f"report_carteira_{file_hash}"] = data
+
+    report_data = st.session_state.get(f"report_carteira_{file_hash}")
+
+    if report_data:
+        html = render_portfolio_report(report_data)
+
+        col1, col2 = st.columns([1, 4])
+        with col1:
+            st.download_button(
+                "⬇️ Baixar relatório (HTML)",
+                data=html,
+                file_name="analise_carteira.html",
+                mime="text/html",
+                key="download_carteira",
+            )
+        with col2:
+            with st.expander("Ver dados extraídos (JSON)"):
+                st.json(report_data)
+
+        st.components.v1.html(html, height=2900, scrolling=True)
+
+
+def main():
+    st.title("Analisador de investimentos")
+    modo = st.radio(
+        "O que você quer analisar?",
+        ["Fundo de investimento", "Carteira de investimentos"],
+        horizontal=True,
+    )
+    st.divider()
+
+    if modo == "Fundo de investimento":
+        main_fundo()
+    else:
+        main_carteira()
 
 
 if __name__ == "__main__":
