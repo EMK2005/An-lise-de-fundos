@@ -2,163 +2,302 @@
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>{{ data.fundo.nome or "Análise de fundo" }}</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.4/chart.umd.min.js"></script>
 <style>
-  :root{
-    --navy:#132A46; --navy-light:#1F3D63; --gold:#A9823C; --gold-light:#D9C08F;
-    --bg:#F7F6F3; --card:#FFFFFF; --ink:#22262B;
-    --ink-soft:#5C6570; --line:#E4E1D8; --up:#2E6B4F; --down:#A13B2E;
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=DM+Serif+Display:ital@0;1&display=swap');
+
+  :root {
+    --bg:#F7F6F2; --surface:#FFFFFF; --surface2:#F0EEE9; --border:#E4E1D8;
+    --text:#1A1916; --text-muted:#5C6570; --text-faint:#9E9B94;
+    --navy:#132A46; --navy-mid:#1F3D63;
+    --gold:#A9823C; --gold-bg:#FBF1E1;
+    --green:#1E6B3C; --green-bg:#EAF3EE;
+    --blue:#1A4D7A; --blue-bg:#E8EFF6;
+    --amber:#7A4A10; --amber-bg:#FBF1E1;
+    --red:#8A1C1C; --red-bg:#FAECEC;
   }
-  *{box-sizing:border-box;}
-  body{margin:0;background:var(--bg);color:var(--ink);font-family:'Inter',system-ui,sans-serif;font-size:15px;line-height:1.6;}
-  .wrap{max-width:960px;margin:0 auto;padding:0 0 60px;}
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--text);font-size:14px;line-height:1.6;}
+  .container{max-width:1000px;margin:0 auto;padding:0 24px;}
 
-  .letterhead{background:var(--navy);color:#fff;padding:40px 44px 32px;position:relative;}
-  .letterhead .eyebrow{font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--gold-light);font-weight:500;}
-  .letterhead h1{font-family:'Source Serif 4',serif;font-weight:600;font-size:30px;margin:8px 0 6px;}
-  .letterhead .meta{font-size:13px;color:#C9D3DF;}
-  .letterhead .meta span{margin-right:18px;}
+  /* ── HEADER ── */
+  .site-header{background:var(--navy);color:#F7F6F2;padding:44px 40px 36px;position:relative;overflow:hidden;}
+  .site-header::before{content:'';position:absolute;top:-40px;right:-40px;width:300px;height:300px;border-radius:50%;border:40px solid rgba(255,255,255,.04);}
+  .site-header::after{content:'';position:absolute;bottom:-60px;right:100px;width:180px;height:180px;border-radius:50%;border:28px solid rgba(255,255,255,.03);}
+  .header-eyebrow{font-size:11px;font-weight:500;letter-spacing:.1em;text-transform:uppercase;color:var(--gold);opacity:.85;margin-bottom:12px;}
+  .header-title{font-family:'DM Serif Display',Georgia,serif;font-size:clamp(24px,3.6vw,36px);font-weight:400;line-height:1.2;color:#F7F6F2;max-width:640px;margin-bottom:16px;}
+  .header-meta{display:flex;flex-wrap:wrap;gap:10px;margin-top:22px;}
+  .header-pill{font-size:12px;padding:5px 12px;border:1px solid rgba(247,246,242,.2);border-radius:100px;color:rgba(247,246,242,.8);}
 
-  .risk-seal{margin-top:26px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.14);border-radius:10px;padding:16px 20px;}
-  .risk-seal .label{font-size:12px;color:#C9D3DF;text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px;}
-  .risk-track{position:relative;height:6px;background:rgba(255,255,255,.18);border-radius:4px;}
-  .risk-track .fill{position:absolute;left:0;top:0;height:100%;background:linear-gradient(90deg,#4C7A9E,var(--gold));border-radius:4px;}
-  .risk-track .marker{position:absolute;top:-5px;width:16px;height:16px;background:#fff;border:3px solid var(--gold);border-radius:50%;transform:translateX(-50%);}
-  .risk-labels{display:flex;justify-content:space-between;font-size:11px;color:#9FB0C2;margin-top:8px;}
+  /* ── LAYOUT ── */
+  section{padding:36px 0;}
+  section+section{border-top:1px solid var(--border);}
+  .section-label{font-size:10px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--text-faint);margin-bottom:6px;}
+  .section-title{font-family:'DM Serif Display',Georgia,serif;font-size:22px;font-weight:400;color:var(--text);margin-bottom:20px;}
 
-  .section{padding:32px 44px;border-bottom:1px solid var(--line);}
-  .section h2{font-family:'Source Serif 4',serif;font-size:19px;font-weight:600;color:var(--navy);margin:0 0 18px;}
-  .summary p{margin:0;color:var(--ink);font-size:15.5px;}
+  /* ── RESUMO / SCORE CARD ── */
+  .score-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:24px 26px;position:relative;overflow:hidden;margin-bottom:16px;}
+  .score-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:var(--score-color, var(--gold));}
+  .score-card-top{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;flex-wrap:wrap;margin-bottom:16px;}
+  .score-fund-name{font-size:18px;font-weight:600;color:var(--text);margin-bottom:4px;}
+  .score-fund-sub{font-size:12px;color:var(--text-faint);}
+  .score-pill{display:inline-flex;align-items:baseline;gap:4px;padding:6px 14px;border-radius:100px;font-weight:600;font-size:15px;flex-shrink:0;}
+  .score-pill small{font-size:11px;font-weight:500;opacity:.75;}
+  .score-quote{font-family:'DM Serif Display',Georgia,serif;font-style:italic;font-size:15px;color:var(--text-muted);line-height:1.6;border-left:3px solid var(--gold);padding-left:14px;margin-bottom:16px;}
+  .score-justif{font-size:12.5px;color:var(--text-muted);line-height:1.6;}
 
-  .grid-2{display:grid;grid-template-columns:1.3fr 1fr;gap:28px;}
-  .stat-row{display:flex;gap:14px;flex-wrap:wrap;margin-bottom:20px;}
-  .stat{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:14px 18px;flex:1;min-width:140px;}
-  .stat .v{font-family:'Source Serif 4',serif;font-size:24px;font-weight:600;color:var(--navy);}
-  .stat .v.up{color:var(--up);} .stat .v.down{color:var(--down);}
-  .stat .l{font-size:12px;color:var(--ink-soft);margin-top:2px;}
+  .alert-box{border-radius:10px;padding:14px 18px;margin-top:14px;display:flex;align-items:flex-start;gap:12px;}
+  .alert-box.red{background:var(--red-bg);border:1px solid #F0C0C0;}
+  .alert-box.blue{background:var(--blue-bg);border:1px solid #C0D5EC;}
+  .alert-icon{font-size:17px;flex-shrink:0;margin-top:1px;}
+  .alert-title{font-size:13px;font-weight:600;margin-bottom:3px;}
+  .alert-box.red .alert-title{color:var(--red);}
+  .alert-box.blue .alert-title{color:var(--blue);}
+  .alert-body{font-size:12px;line-height:1.55;}
+  .alert-box.red .alert-body{color:#6B2020;}
+  .alert-box.blue .alert-body{color:#1A3D5C;}
 
-  .chart-card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:18px;}
-  .chart-card canvas{max-height:260px;}
+  /* ── STATS ── */
+  .stat-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:12px;}
+  .stat-item{background:var(--surface2);border-radius:10px;padding:12px 14px;}
+  .stat-label{font-size:10px;color:var(--text-faint);font-weight:500;letter-spacing:.06em;text-transform:uppercase;margin-bottom:3px;}
+  .stat-value{font-size:18px;font-weight:600;color:var(--text);}
+  .stat-value.up{color:var(--green);} .stat-value.down{color:var(--red);}
+  .stat-sub{font-size:10.5px;color:var(--text-muted);margin-top:1px;}
 
-  table{width:100%;border-collapse:collapse;font-size:14px;}
-  th{text-align:left;font-weight:500;color:var(--ink-soft);font-size:12px;text-transform:uppercase;letter-spacing:.04em;padding:8px 10px;border-bottom:1px solid var(--line);}
-  td{padding:10px 10px;border-bottom:1px solid var(--line);}
+  /* ── BADGES / TAGS ── */
+  .badge{display:inline-block;font-size:10px;font-weight:600;padding:3px 9px;border-radius:100px;letter-spacing:.03em;}
+  .badge-green{background:var(--green-bg);color:var(--green);}
+  .badge-blue{background:var(--blue-bg);color:var(--blue);}
+  .badge-amber{background:var(--amber-bg);color:var(--amber);}
+  .badge-red{background:var(--red-bg);color:var(--red);}
+  .badge-gray{background:var(--surface2);color:var(--text-muted);}
+
+  /* ── CHARTS ── */
+  .charts-grid{display:grid;grid-template-columns:1fr 1fr;gap:18px;}
+  @media (max-width:700px){.charts-grid{grid-template-columns:1fr;}}
+  .chart-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:18px;}
+  .chart-title{font-size:13px;font-weight:600;color:var(--text);margin-bottom:2px;}
+  .chart-sub{font-size:11px;color:var(--text-faint);margin-bottom:14px;}
+
+  /* ── FUND DETAIL CARD ── */
+  .fund-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;overflow:hidden;}
+  .fund-card-header{padding:18px 22px 16px;border-bottom:1px solid var(--border);display:flex;align-items:flex-start;justify-content:space-between;gap:16px;}
+  .fund-card-tag{font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--gold);margin-bottom:4px;}
+  .fund-card-name{font-size:15px;font-weight:600;color:var(--text);}
+  .risk-meter{display:flex;gap:3px;align-items:flex-end;flex-shrink:0;}
+  .risk-bar{width:6px;border-radius:3px;background:var(--border);}
+  .fund-card-body{padding:18px 22px;}
+
+  table{width:100%;border-collapse:collapse;font-size:13.5px;}
+  th{text-align:left;font-weight:500;color:var(--text-faint);font-size:11px;text-transform:uppercase;letter-spacing:.04em;padding:8px 10px;border-bottom:1px solid var(--border);}
+  td{padding:9px 10px;border-bottom:1px solid var(--border);}
   tr:last-child td{border-bottom:none;}
 
-  .tag-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:10px;}
-  .tag-list li{padding:12px 14px;background:#FBF8F1;border-left:3px solid var(--gold);border-radius:0 8px 8px 0;font-size:14px;}
+  .risk-section{background:var(--surface2);border-radius:8px;padding:14px 16px;margin-top:16px;}
+  .risk-section-title{font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--text-faint);margin-bottom:9px;}
+  .risk-tags{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:9px;}
+  .risk-tag{font-size:10.5px;padding:3px 9px;border-radius:100px;font-weight:500;background:var(--amber-bg);color:var(--amber);}
+  .risk-text{font-size:12px;color:var(--text-muted);line-height:1.55;}
+  .profile-section{margin-top:14px;}
+  .profile-title{font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--text-faint);margin-bottom:6px;}
+  .profile-text{font-size:12px;color:var(--text-muted);line-height:1.55;}
 
-  .footer{padding:22px 44px;font-size:11.5px;color:var(--ink-soft);}
+  .tag-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:10px;}
+  .tag-list li{padding:12px 14px;background:var(--gold-bg);border-left:3px solid var(--gold);border-radius:0 8px 8px 0;font-size:13px;}
+
+  .footer{padding:20px 40px;font-size:11px;color:var(--text-faint);text-align:center;border-top:1px solid var(--border);}
+
+  @media (max-width:600px){
+    .site-header{padding:32px 20px 26px;}
+    .container{padding:0 16px;}
+    section{padding:28px 0;}
+  }
 </style>
 </head>
 <body>
-<div class="wrap">
 
-  <div class="letterhead">
-    <div class="eyebrow">{{ data.fundo.tipo or "Fundo de investimento" }}{% if data.fundo.classificacao_anbima %} · {{ data.fundo.classificacao_anbima }}{% endif %}</div>
-    <h1>{{ data.fundo.nome or "Fundo não identificado" }}</h1>
-    <div class="meta">
-      {% if data.fundo.gestora %}<span>Gestora: {{ data.fundo.gestora }}</span>{% endif %}
-      {% if data.fundo.publico_alvo %}<span>Público-alvo: {{ data.fundo.publico_alvo }}</span>{% endif %}
-      {% if data.fundo.data_referencia %}<span>Referência: {{ data.fundo.data_referencia }}</span>{% endif %}
+{% set score = data.score_geral %}
+{% set score_color = ('#1E6B3C' if score >= 80 else '#1A4D7A' if score >= 65 else '#7A4A10' if score >= 50 else '#8A1C1C') if score is not none else '#A9823C' %}
+{% set score_badge_bg = ('var(--green-bg)' if score >= 80 else 'var(--blue-bg)' if score >= 65 else 'var(--amber-bg)' if score >= 50 else 'var(--red-bg)') if score is not none else 'var(--gold-bg)' %}
+{% set risk_level = data.risco.escala_risco_1a5 or 3 %}
+{% set risk_color = '#1E6B3C' if risk_level <= 2 else ('#7A4A10' if risk_level == 3 else '#8A1C1C') %}
+
+<header class="site-header">
+  <div class="container">
+    <p class="header-eyebrow">Análise de fundo{% if data.fundo.data_referencia %} · {{ data.fundo.data_referencia }}{% endif %}</p>
+    <h1 class="header-title">{{ data.fundo.nome or "Fundo não identificado" }}</h1>
+    <div class="header-meta">
+      {% if data.fundo.tipo %}<span class="header-pill">{{ data.fundo.tipo }}</span>{% endif %}
+      {% if data.fundo.classificacao_anbima %}<span class="header-pill">{{ data.fundo.classificacao_anbima }}</span>{% endif %}
+      {% if data.fundo.publico_alvo %}<span class="header-pill">{{ data.fundo.publico_alvo }}</span>{% endif %}
+      {% if data.risco.classificacao_risco %}<span class="header-pill">Risco: {{ data.risco.classificacao_risco }}</span>{% endif %}
+      {% if data.fundo.gestora %}<span class="header-pill">{{ data.fundo.gestora }}</span>{% endif %}
+    </div>
+  </div>
+</header>
+
+<main>
+
+<!-- RESUMO / SCORE -->
+<section>
+  <div class="container">
+    <p class="section-label">Resumo executivo</p>
+    <h2 class="section-title">Avaliação geral do fundo</h2>
+
+    <div class="score-card" style="--score-color:{{ score_color }}">
+      <div class="score-card-top">
+        <div>
+          <div class="score-fund-name">{{ data.fundo.nome or "Fundo" }}</div>
+          {% if data.fundo.gestora %}<div class="score-fund-sub">{{ data.fundo.gestora }}</div>{% endif %}
+        </div>
+        {% if score is not none %}
+        <div class="score-pill" style="background:{{ score_badge_bg }};color:{{ score_color }}">
+          {{ score|round|int }}<small>/100</small>
+        </div>
+        {% endif %}
+      </div>
+
+      {% if data.resumo_executivo %}
+      <p class="score-quote">{{ data.resumo_executivo }}</p>
+      {% endif %}
+
+      {% if data.score_justificativa %}
+      <p class="score-justif"><strong style="color:var(--text);">Por que essa nota:</strong> {{ data.score_justificativa }}</p>
+      {% endif %}
     </div>
 
-    {% if data.risco.escala_risco_1a5 or data.risco.classificacao_risco %}
-    <div class="risk-seal">
-      <div class="label">Perfil de risco{% if data.risco.classificacao_risco %} · {{ data.risco.classificacao_risco }}{% endif %}</div>
-      <div class="risk-track">
-        <div class="fill" style="width:{{ ((data.risco.escala_risco_1a5 or 3) / 5 * 100) }}%"></div>
-        <div class="marker" style="left:{{ ((data.risco.escala_risco_1a5 or 3) / 5 * 100) }}%"></div>
+    {% if data.pontos_atencao %}
+    <div class="alert-box red">
+      <span class="alert-icon">⚠️</span>
+      <div>
+        <div class="alert-title">Pontos de atenção</div>
+        <div class="alert-body">{{ data.pontos_atencao | join(' · ') }}</div>
       </div>
-      <div class="risk-labels"><span>Baixo</span><span>Moderado</span><span>Alto</span><span>Muito alto</span></div>
     </div>
     {% endif %}
   </div>
+</section>
 
-  {% if data.resumo_executivo %}
-  <div class="section summary">
-    <h2>Resumo executivo</h2>
-    <p>{{ data.resumo_executivo }}</p>
-  </div>
-  {% endif %}
-
-  <div class="section">
-    <h2>Rentabilidade</h2>
-    <div class="stat-row">
-      {% if data.rentabilidade.rentabilidade_12m_fundo is not none %}
-      <div class="stat"><div class="v {{ 'up' if data.rentabilidade.rentabilidade_12m_fundo >= 0 else 'down' }}">{{ "%.2f"|format(data.rentabilidade.rentabilidade_12m_fundo) }}%</div><div class="l">Fundo · 12 meses</div></div>
-      {% endif %}
-      {% if data.rentabilidade.rentabilidade_12m_benchmark is not none %}
-      <div class="stat"><div class="v">{{ "%.2f"|format(data.rentabilidade.rentabilidade_12m_benchmark) }}%</div><div class="l">{{ data.rentabilidade.benchmark_nome or "Benchmark" }} · 12 meses</div></div>
-      {% endif %}
-      {% if data.rentabilidade.percentual_do_benchmark is not none %}
-      <div class="stat"><div class="v">{{ "%.0f"|format(data.rentabilidade.percentual_do_benchmark) }}%</div><div class="l">do {{ data.rentabilidade.benchmark_nome or "benchmark" }}</div></div>
-      {% endif %}
-      {% if data.rentabilidade.rentabilidade_inicio_fundo is not none %}
-      <div class="stat"><div class="v">{{ "%.2f"|format(data.rentabilidade.rentabilidade_inicio_fundo) }}%</div><div class="l">Desde o início</div></div>
-      {% endif %}
-    </div>
-    {% if data.rentabilidade.serie_historica %}
-    <div class="chart-card"><canvas id="chartRentabilidade"></canvas></div>
-    {% endif %}
-  </div>
-
-  <div class="section">
-    <div class="grid-2">
-      <div>
-        <h2>Risco</h2>
-        <table>
-          {% if data.risco.volatilidade_12m is not none %}<tr><td>Volatilidade (12m)</td><td>{{ "%.2f"|format(data.risco.volatilidade_12m) }}%</td></tr>{% endif %}
-          {% if data.risco.drawdown_maximo is not none %}<tr><td>Drawdown máximo</td><td>{{ "%.2f"|format(data.risco.drawdown_maximo) }}%</td></tr>{% endif %}
-          {% if data.risco.indice_sharpe is not none %}<tr><td>Índice de Sharpe</td><td>{{ "%.2f"|format(data.risco.indice_sharpe) }}</td></tr>{% endif %}
-        </table>
+<!-- GRÁFICOS -->
+{% if data.rentabilidade.serie_historica or data.composicao_carteira %}
+<section>
+  <div class="container">
+    <p class="section-label">Visualizações</p>
+    <h2 class="section-title">Análise gráfica</h2>
+    <div class="charts-grid">
+      {% if data.rentabilidade.serie_historica %}
+      <div class="chart-card">
+        <div class="chart-title">Rentabilidade vs. {{ data.rentabilidade.benchmark_nome or "benchmark" }}</div>
+        <div class="chart-sub">Evolução mensal (%)</div>
+        <div style="position:relative;height:240px;"><canvas id="chartRentabilidade"></canvas></div>
       </div>
-      <div>
-        <h2>Taxas e custos</h2>
+      {% endif %}
+      {% if data.composicao_carteira %}
+      <div class="chart-card">
+        <div class="chart-title">Composição da carteira</div>
+        <div class="chart-sub">Distribuição por categoria de ativo</div>
+        <div style="position:relative;height:240px;"><canvas id="chartComposicao"></canvas></div>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+</section>
+{% endif %}
+
+<!-- FICHA DETALHADA -->
+<section>
+  <div class="container">
+    <p class="section-label">Ficha detalhada</p>
+    <h2 class="section-title">Indicadores e características</h2>
+
+    <div class="fund-card">
+      <div class="fund-card-header">
+        <div>
+          <div class="fund-card-tag">{{ data.fundo.tipo or "Fundo" }}</div>
+          <div class="fund-card-name">{{ data.fundo.nome or "Fundo" }}</div>
+        </div>
+        <div style="display:flex;flex-direction:column;align-items:center;gap:5px;">
+          <div class="risk-meter">
+            {% for n in range(1,6) %}
+            <div class="risk-bar" style="height:{{ 10 + n*3 }}px;background:{{ risk_color if n <= risk_level else 'var(--border)' }}"></div>
+            {% endfor %}
+          </div>
+          <span class="badge {{ 'badge-green' if risk_level <= 2 else ('badge-amber' if risk_level == 3 else 'badge-red') }}">
+            {{ data.risco.classificacao_risco or "Risco" }}
+          </span>
+        </div>
+      </div>
+
+      <div class="fund-card-body">
+        <div class="stat-row" style="margin-bottom:18px;">
+          {% if data.rentabilidade.rentabilidade_12m_fundo is not none %}
+          <div class="stat-item">
+            <div class="stat-label">Retorno 12M</div>
+            <div class="stat-value {{ 'up' if data.rentabilidade.rentabilidade_12m_fundo >= 0 else 'down' }}">{{ "%.2f"|format(data.rentabilidade.rentabilidade_12m_fundo) }}%</div>
+            {% if data.rentabilidade.percentual_do_benchmark is not none %}<div class="stat-sub">{{ "%.0f"|format(data.rentabilidade.percentual_do_benchmark) }}% do {{ data.rentabilidade.benchmark_nome or "benchmark" }}</div>{% endif %}
+          </div>
+          {% endif %}
+          {% if data.risco.volatilidade_12m is not none %}
+          <div class="stat-item"><div class="stat-label">Volatilidade</div><div class="stat-value">{{ "%.2f"|format(data.risco.volatilidade_12m) }}%</div><div class="stat-sub">anualizada</div></div>
+          {% endif %}
+          {% if data.taxas.taxa_administracao is not none %}
+          <div class="stat-item"><div class="stat-label">Taxa adm.</div><div class="stat-value">{{ "%.2f"|format(data.taxas.taxa_administracao) }}%</div><div class="stat-sub">ao ano</div></div>
+          {% endif %}
+          {% if data.taxas.prazo_resgate %}
+          <div class="stat-item"><div class="stat-label">Liquidez</div><div class="stat-value" style="font-size:15px;">{{ data.taxas.prazo_resgate }}</div><div class="stat-sub">prazo de resgate</div></div>
+          {% endif %}
+          {% if data.risco.indice_sharpe is not none %}
+          <div class="stat-item"><div class="stat-label">Sharpe</div><div class="stat-value">{{ "%.2f"|format(data.risco.indice_sharpe) }}</div></div>
+          {% endif %}
+          {% if data.risco.drawdown_maximo is not none %}
+          <div class="stat-item"><div class="stat-label">Drawdown máx.</div><div class="stat-value down">{{ "%.2f"|format(data.risco.drawdown_maximo) }}%</div></div>
+          {% endif %}
+        </div>
+
         <table>
-          {% if data.taxas.taxa_administracao is not none %}<tr><td>Adm.</td><td>{{ "%.2f"|format(data.taxas.taxa_administracao) }}%</td></tr>{% endif %}
-          {% if data.taxas.taxa_performance %}<tr><td>Performance</td><td>{{ data.taxas.taxa_performance }}</td></tr>{% endif %}
-          {% if data.taxas.aplicacao_inicial_minima %}<tr><td>Aplicação mín.</td><td>{{ data.taxas.aplicacao_inicial_minima }}</td></tr>{% endif %}
-          {% if data.taxas.prazo_resgate %}<tr><td>Prazo resgate</td><td>{{ data.taxas.prazo_resgate }}</td></tr>{% endif %}
+          {% if data.taxas.taxa_performance %}<tr><td>Taxa de performance</td><td>{{ data.taxas.taxa_performance }}</td></tr>{% endif %}
+          {% if data.taxas.aplicacao_inicial_minima %}<tr><td>Aplicação inicial mínima</td><td>{{ data.taxas.aplicacao_inicial_minima }}</td></tr>{% endif %}
+          {% if data.patrimonio_liquido %}<tr><td>Patrimônio líquido</td><td>{{ data.patrimonio_liquido }}</td></tr>{% endif %}
+          {% if data.numero_cotistas %}<tr><td>Número de cotistas</td><td>{{ data.numero_cotistas }}</td></tr>{% endif %}
         </table>
+
+        {% if data.composicao_carteira %}
+        <table style="margin-top:14px;">
+          <tr><th>Categoria</th><th>%</th></tr>
+          {% for item in data.composicao_carteira %}
+          <tr><td>{{ item.categoria }}</td><td>{{ "%.1f"|format(item.percentual) }}%</td></tr>
+          {% endfor %}
+        </table>
+        {% endif %}
+
+        {% if data.riscos_principais %}
+        <div class="risk-section">
+          <div class="risk-section-title">Análise de risco</div>
+          <div class="risk-tags">
+            {% for r in data.riscos_principais %}<span class="risk-tag">{{ r if r|length < 40 else r[:37] + "…" }}</span>{% endfor %}
+          </div>
+        </div>
+        {% endif %}
+
+        {% if data.fundo.publico_alvo or data.resumo_executivo %}
+        <div class="profile-section">
+          <div class="profile-title">Perfil do investidor indicado</div>
+          <div class="profile-text">{{ data.fundo.publico_alvo or "Não especificado no documento." }}{% if data.risco.classificacao_risco %} · Compatível com perfil de risco {{ data.risco.classificacao_risco|lower }}.{% endif %}</div>
+        </div>
+        {% endif %}
       </div>
     </div>
   </div>
+</section>
 
-  {% if data.composicao_carteira %}
-  <div class="section">
-    <h2>Composição da carteira</h2>
-    <div class="grid-2">
-      <div class="chart-card"><canvas id="chartComposicao"></canvas></div>
-      <table>
-        <tr><th>Categoria</th><th>%</th></tr>
-        {% for item in data.composicao_carteira %}
-        <tr><td>{{ item.categoria }}</td><td>{{ "%.1f"|format(item.percentual) }}%</td></tr>
-        {% endfor %}
-      </table>
-    </div>
-  </div>
-  {% endif %}
-
-  {% if data.riscos_principais or data.pontos_atencao %}
-  <div class="section">
-    <h2>Pontos de atenção</h2>
-    <ul class="tag-list">
-      {% for r in (data.riscos_principais or []) %}<li>{{ r }}</li>{% endfor %}
-      {% for r in (data.pontos_atencao or []) %}<li>{{ r }}</li>{% endfor %}
-    </ul>
-  </div>
-  {% endif %}
-
-  <div class="footer">
-    Patrimônio líquido: {{ data.patrimonio_liquido or "não informado" }}
-    {% if data.numero_cotistas %} · Cotistas: {{ data.numero_cotistas }}{% endif %}
-    · Análise gerada automaticamente a partir do documento anexado — não constitui recomendação de investimento.
-  </div>
+<div class="footer">
+  Análise gerada automaticamente a partir do documento anexado — não constitui recomendação de investimento.
 </div>
+
+</main>
 
 <script>
 {% if data.rentabilidade.serie_historica %}
@@ -181,9 +320,9 @@ new Chart(document.getElementById('chartRentabilidade'), {
     ]
   },
   options: {
-    responsive: true,
-    plugins: { legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 12 } } } },
-    scales: { y: { ticks: { callback: v => v + '%' } } }
+    responsive: true, maintainAspectRatio: false,
+    plugins: { legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 11 } } } },
+    scales: { y: { ticks: { callback: v => v + '%', font: { size: 10 } } }, x: { ticks: { font: { size: 10 } } } }
   }
 });
 {% endif %}
@@ -195,10 +334,10 @@ new Chart(document.getElementById('chartComposicao'), {
     labels: {{ data.composicao_carteira | map(attribute='categoria') | list | tojson }},
     datasets: [{
       data: {{ data.composicao_carteira | map(attribute='percentual') | list | tojson }},
-      backgroundColor: ['#132A46','#A9823C','#4C7A9E','#D9C08F','#5C6570','#2E6B4F','#8C6A2F','#C9D3DF']
+      backgroundColor: ['#132A46','#A9823C','#1A4D7A','#1E6B3C','#7A4A10','#5C6570','#D9C08F','#8A1C1C']
     }]
   },
-  options: { plugins: { legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 11 } } } } }
+  options: { plugins: { legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 10.5 } } } } }
 });
 {% endif %}
 </script>
