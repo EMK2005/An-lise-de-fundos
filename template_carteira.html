@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<title>Análise de Carteira de Investimentos</title>
+<style>
+  @page { size: A4; margin: 0; }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; background: #d9dde0; }
+  body {
+    font-family: Arial, Helvetica, sans-serif;
+    color: #1c2b33;
+    font-size: 10.7pt;
+    line-height: 1.48;
+  }
+  h1, h2, h3, h4 { font-family: Georgia, 'Times New Roman', serif; color: #0E2841; margin: 0; }
+
+  .page {
+    width: 210mm;
+    min-height: 297mm;
+    padding: 17mm 17mm 15mm 17mm;
+    margin: 0 auto;
+    background: #ffffff;
+    position: relative;
+    page-break-after: always;
+  }
+  .page:last-child { page-break-after: auto; }
+  @media screen {
+    body { padding: 10mm 0; }
+    .page { margin-bottom: 8mm; box-shadow: 0 0 14px rgba(0,0,0,.18); }
+  }
+  .page-num { position: absolute; bottom: 8mm; right: 17mm; font-size: 7.6pt; color: #9aa3a8; }
+  .page-tag { position: absolute; bottom: 8mm; left: 17mm; font-size: 7.6pt; color: #9aa3a8; }
+
+  .eyebrow { font-size: 8.6pt; letter-spacing: 2px; text-transform: uppercase; color: #C9962B; font-weight: bold; margin-bottom: 4px; font-family: Arial, sans-serif;}
+  .h2 { font-size: 18pt; margin-bottom: 8px; }
+  .h3 { font-size: 13pt; margin-bottom: 3px; }
+  .rule { height: 2px; background: linear-gradient(90deg,#0E2841 0%,#0E2841 40px,#dfe4e7 40px); margin: 8px 0 14px 0; }
+  .lede { color: #3d4a52; font-size: 10pt; margin-bottom: 10px; }
+  p { margin: 0 0 8px 0; }
+
+  .cover-frame { height: 263mm; display: flex; flex-direction: column; }
+  .cover-kicker { letter-spacing: 4px; font-size: 10pt; color: #C9962B; font-weight: bold; text-transform: uppercase; }
+  .cover-title { font-size: 34pt; margin-top: 14px; color: #0E2841; line-height: 1.15; }
+  .cover-sub { font-size: 13.5pt; color: #4b5a63; margin-top: 12px; font-family: Georgia, serif; font-style: italic; }
+  .cover-line { height: 3px; width: 70px; background: #C9962B; margin-top: 22px; }
+  .cover-meta-table { margin-top: 34px; width: 100%; border-collapse: collapse; font-size: 9.6pt;}
+  .cover-meta-table td { padding: 7px 0; border-bottom: 1px solid #e8eaec; }
+  .cover-meta-table td:first-child { color: #7c878d; width: 45%; }
+  .cover-meta-table td:last-child { color: #0E2841; font-weight: bold; text-align:right; }
+  .cover-kpis { display: grid; grid-template-columns: repeat(4,1fr); gap: 12px; margin-top: 34px; }
+  .kpi-box { border-top: 4px solid #0E2841; padding: 16px 10px; text-align: center; background: #f7f8f9; }
+  .kpi-num { font-family: Georgia, serif; font-size: 22pt; color: #0E2841; font-weight: bold; }
+  .kpi-label { font-size: 8pt; color: #5c6b73; margin-top: 5px; text-transform: uppercase; letter-spacing: .4px; line-height:1.3;}
+  .cover-spacer { flex: 1; }
+  .cover-foot { font-size: 8pt; color: #8b979d; border-top: 1px solid #e5e8ea; padding-top: 10px; }
+
+  .cols-2 { display: grid; grid-template-columns: 1.1fr 0.9fr; gap: 18px; align-items: start; }
+  .cols-2-even { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; align-items: start; }
+
+  .card { border: 1px solid #dde2e5; border-radius: 3px; padding: 13px 15px; background: #fbfbfc; }
+  .card-title { font-size: 9.6pt; font-weight: bold; color: #0E2841; margin-bottom: 8px; text-transform: uppercase; letter-spacing:.3px;}
+
+  svg { width: 100%; height: auto; display: block; }
+  svg text { font-family: Arial, sans-serif; }
+  .hbar-label { font-size: 8.6px; fill: #33414a; }
+  .hbar-value { font-size: 8.6px; fill: #0E2841; font-weight: bold; }
+
+  table.mini { width: 100%; border-collapse: collapse; font-size: 9.3pt; }
+  table.mini td { padding: 5px 4px; border-bottom: 1px solid #eef0f1; }
+  table.mini td.num { text-align: right; font-weight: bold; color: #0E2841; }
+
+  .legend-list { display:flex; flex-direction: column; gap: 10px; }
+  .legend-item { display: flex; gap: 9px; align-items: flex-start; }
+  .legend-dot { width: 10px; height: 10px; border-radius: 50%; margin-top: 4px; flex-shrink: 0; }
+  .legend-title { font-size: 9.6pt; font-weight: bold; color: #23323a; }
+  .legend-meta { font-weight: normal; color: #6f7c83; font-size: 8.8pt;}
+  .legend-desc { font-size: 8.9pt; color: #556067; margin-top: 1px; }
+
+  .callout { border-left: 3px solid #0E2841; background: #f2f4f6; padding: 9px 12px; font-size: 9.3pt; }
+  .callout.warn { border-left-color: #B5474D; background: #fbf1f1; }
+  .callout.good { border-left-color: #2E6B4F; background: #f0f6f2; }
+  .callout b { color: #0E2841; }
+
+  table.riskt { width: 100%; border-collapse: collapse; font-size: 8.6pt; text-align: center; }
+  table.riskt th { text-align: center; background: #0E2841; color: #fff; padding: 6px 6px; font-size: 7.8pt; text-transform: uppercase; letter-spacing: .3px; font-weight: normal;}
+  table.riskt td { padding: 6px 6px; border-bottom: 1px solid #eceff0; vertical-align: middle; text-align: center; }
+  table.riskt tr:nth-child(even) td { background: #f7f8f9; }
+  .t-asset { font-weight: bold; color: #23323a; width: 42%; text-align:left;}
+  .t-bank { width: 20%; color: #556067;}
+  .t-pl { width: 17%; font-weight:bold; color:#0E2841;}
+  .t-cdi { width: 21%; color:#B5474D; font-weight:bold;}
+
+  .hl-grid { display: flex; flex-direction: column; gap: 7px; }
+  .hl-card { border-left: 3px solid #2E6B4F; background: #f7fbf8; padding: 8px 12px; }
+  .hl-top { display: flex; justify-content: space-between; gap: 10px;}
+  .hl-name { font-weight: bold; font-size: 9.6pt; color: #1d3a2b;}
+  .hl-meta { font-size: 8.4pt; color: #6f7c73; white-space: nowrap;}
+  .hl-desc { font-size: 8.9pt; color: #45524a; margin: 3px 0 0 0;}
+
+  .risk-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+  .risk-card { border: 1px solid #ecdada; background: #fffaf9; padding: 10px 11px; }
+  .risk-card h4 { margin: 0 0 5px 0; font-size: 9.4pt; color: #8f3a3f; font-family: Arial, sans-serif;}
+  .risk-card p { margin: 0; font-size: 8.4pt; color: #56494a; }
+
+  ul.clean { margin: 4px 0 0 0; padding-left: 17px; }
+  ul.clean li { margin-bottom: 6px; font-size: 9.6pt; color: #3a464c; }
+
+  .section-block { margin-bottom: 15px; }
+  .section-block:last-child { margin-bottom: 0; }
+</style>
+</head>
+<body>
+
+{% set palette = ['#0E2841','#C9962B','#3E7C8C','#8B5A8C','#B5474D','#5C8A5C','#7A7A7A','#2E6B7A'] %}
+{% set class_colors = {'Ótimo': '#2E6B4F', 'Bom': '#3E7C8C', 'Regular': '#C9962B', 'Ruim': '#B5474D', 'Em validação': '#8B5A8C'} %}
+{% set total_ativos = data.ativos | length %}
+{% set instituicoes = data.concentracao_por_instituicao %}
+{% set maior_instituicao = instituicoes[0] if instituicoes else none %}
+{% set ativos_ruins = data.ativos | selectattr('classificacao', 'equalto', 'Ruim') | list %}
+{% set pct_ruim = data.distribuicao_qualidade | selectattr('classificacao', 'equalto', 'Ruim') | map(attribute='percentual_pl') | sum %}
+
+<!-- ============ PÁGINA 1 — CAPA ============ -->
+<div class="page">
+  <div class="page-num">1 de 8</div>
+  <div class="cover-frame">
+    <div class="cover-kicker">Relatório Confidencial de Cliente</div>
+    <div class="cover-title">Análise da Carteira<br>de Investimentos</div>
+    <div class="cover-sub">Visão consolidada de risco, concentração e qualidade dos ativos</div>
+    <div class="cover-line"></div>
+
+    <table class="cover-meta-table">
+      <tr><td>Ativos analisados</td><td>{{ total_ativos }} posições</td></tr>
+      {% if data.cliente.perfil_risco %}<tr><td>Perfil de risco do cliente</td><td>{{ data.cliente.perfil_risco }}</td></tr>{% endif %}
+      {% if data.cliente.data_referencia %}<tr><td>Data de referência</td><td>{{ data.cliente.data_referencia }}</td></tr>{% endif %}
+      {% if data.cliente.patrimonio_total %}<tr><td>Patrimônio total</td><td>{{ data.cliente.patrimonio_total }}</td></tr>{% endif %}
+    </table>
+
+    <div class="cover-kpis">
+      <div class="kpi-box"><div class="kpi-num">{{ total_ativos }}</div><div class="kpi-label">Ativos na carteira</div></div>
+      <div class="kpi-box"><div class="kpi-num">{{ instituicoes | length }}</div><div class="kpi-label">Instituições / custodiantes</div></div>
+      {% if maior_instituicao %}
+      <div class="kpi-box"><div class="kpi-num">{{ "%.1f"|format(maior_instituicao.percentual_pl) }}%</div><div class="kpi-label">Concentrado no {{ maior_instituicao.instituicao }}</div></div>
+      {% endif %}
+      <div class="kpi-box"><div class="kpi-num">{{ "%.1f"|format(pct_ruim) }}%</div><div class="kpi-label">Do PL em ativos classificados como Ruim</div></div>
+    </div>
+
+    <div class="cover-spacer"></div>
+
+    <div class="cover-foot">
+      Documento preparado para uso exclusivo do cliente. Material informativo; não constitui recomendação de
+      investimento (ver aviso legal na última página).
+    </div>
+  </div>
+</div>
+
+<!-- ============ PÁGINA 2 — SUMÁRIO + CONTEXTO + METODOLOGIA ============ -->
+<div class="page">
+  <div class="page-num">2 de 8</div>
+
+  {% if data.resumo_executivo %}
+  <div class="section-block">
+    <div class="eyebrow">Sumário Executivo</div>
+    <div class="h2">O que esta carteira é, hoje</div>
+    <div class="rule"></div>
+    <p class="lede">{{ data.resumo_executivo }}</p>
+  </div>
+  {% endif %}
+
+  {% if data.contexto_mercado.cdi_anual is not none or data.contexto_mercado.selic_meta is not none %}
+  <div class="section-block">
+    <div class="eyebrow">Contexto de Mercado</div>
+    <div class="h3">Referências usadas nesta análise</div>
+    <div class="rule"></div>
+    <p class="lede" style="margin-bottom:10px;">
+      Toda a rentabilidade de renda fixa foi comparada ao CDI (com ajuste de equivalência tributária para
+      ativos isentos de IR).
+    </p>
+    <div class="cols-2-even" style="grid-template-columns: repeat(3,1fr);">
+      {% if data.contexto_mercado.selic_meta is not none %}
+      <div class="card" style="text-align:center;">
+        <div class="card-title">Selic (meta)</div>
+        <div class="kpi-num" style="font-size:18pt;">{{ "%.2f"|format(data.contexto_mercado.selic_meta) }}% a.a.</div>
+      </div>
+      {% endif %}
+      {% if data.contexto_mercado.cdi_anual is not none %}
+      <div class="card" style="text-align:center;">
+        <div class="card-title">CDI</div>
+        <div class="kpi-num" style="font-size:18pt;">{{ "%.2f"|format(data.contexto_mercado.cdi_anual) }}% a.a.</div>
+      </div>
+      {% endif %}
+      {% if data.contexto_mercado.ipca_12m is not none %}
+      <div class="card" style="text-align:center;">
+        <div class="card-title">IPCA (12 meses)</div>
+        <div class="kpi-num" style="font-size:18pt;">{{ "%.2f"|format(data.contexto_mercado.ipca_12m) }}% a.a.</div>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+  {% endif %}
+
+  {% if data.distribuicao_qualidade %}
+  <div class="section-block">
+    <div class="eyebrow">Metodologia</div>
+    <div class="h3">Como os ativos foram classificados</div>
+    <div class="rule"></div>
+    <p class="lede" style="margin-bottom:8px;">
+      Cada ativo foi comparado ao CDI no período (ajustado pela equivalência tributária quando isento de
+      IR) e classificado segundo a régua: acima de 105% do CDI = <b>Ótimo</b>; 100% a 104% = <b>Bom</b>;
+      95% a 99% = <b>Regular</b>; abaixo de 95% = <b>Ruim</b>.
+    </p>
+    <div class="legend-list">
+      {% for item in data.distribuicao_qualidade %}
+      <div class="legend-item">
+        <span class="legend-dot" style="background:{{ class_colors.get(item.classificacao, '#7A7A7A') }}"></span>
+        <div class="legend-text">
+          <div class="legend-title">{{ item.classificacao }} <span class="legend-meta">— {{ item.quantidade_ativos }} ativos · {{ "%.1f"|format(item.percentual_pl) }}% do PL</span></div>
+          {% if item.descricao %}<div class="legend-desc">{{ item.descricao }}</div>{% endif %}
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+</div>
+
+<!-- ============ PÁGINA 3 — DIVERSIFICAÇÃO POR CATEGORIA ============ -->
+{% if data.concentracao_por_categoria %}
+{% set max_cat = data.concentracao_por_categoria | map(attribute='percentual_pl') | max %}
+<div class="page">
+  <div class="page-num">3 de 8</div>
+  <div class="section-block">
+    <div class="eyebrow">Diversificação</div>
+    <div class="h2">Concentração por tipo de ativo</div>
+    <div class="rule"></div>
+    {% if data.leitura_diversificacao %}<p class="lede">{{ data.leitura_diversificacao }}</p>{% endif %}
+    <div class="card">
+      <div class="card-title">% do PL por categoria de ativo</div>
+      <svg viewBox="0 0 560 {{ data.concentracao_por_categoria|length * 38 }}">
+        {% for cat in data.concentracao_por_categoria %}
+        {% set y = loop.index0 * 38 %}
+        {% set w = (cat.percentual_pl / max_cat) * 345 %}
+        <text x="145" y="{{ y + 18 }}" text-anchor="end" class="hbar-label">{{ cat.categoria }}</text>
+        <rect x="155" y="{{ y }}" width="{{ w }}" height="26" rx="4" fill="{{ palette[loop.index0 % palette|length] }}"/>
+        <text x="{{ 155 + w + 8 }}" y="{{ y + 18 }}" class="hbar-value">{{ "%.1f"|format(cat.percentual_pl) }}%</text>
+        {% endfor %}
+      </svg>
+    </div>
+  </div>
+</div>
+{% endif %}
+
+<!-- ============ PÁGINA 4 — QUALIDADE DA CARTEIRA ============ -->
+{% if data.leitura_qualidade or data.distribuicao_qualidade %}
+<div class="page">
+  <div class="page-num">4 de 8</div>
+  <div class="section-block">
+    <div class="eyebrow">Qualidade dos ativos</div>
+    <div class="h2">Como a carteira se distribui por qualidade</div>
+    <div class="rule"></div>
+    <ul class="clean">
+      {% for item in data.distribuicao_qualidade %}
+      <li><b>{{ item.classificacao }}</b> — {{ item.quantidade_ativos }} ativos, {{ "%.1f"|format(item.percentual_pl) }}% do PL{% if item.descricao %}: {{ item.descricao }}{% endif %}</li>
+      {% endfor %}
+    </ul>
+  </div>
+  {% if data.leitura_qualidade %}
+  <div class="section-block" style="margin-top:22px;">
+    <div class="eyebrow">Leitura da qualidade</div>
+    <div class="h3">O que fazer com cada camada</div>
+    <div class="rule"></div>
+    <p class="lede">{{ data.leitura_qualidade }}</p>
+  </div>
+  {% endif %}
+</div>
+{% endif %}
+
+<!-- ============ PÁGINA 5 — TOP 10 POSIÇÕES ============ -->
+{% if data.top_10_posicoes %}
+{% set max_top = data.top_10_posicoes | map(attribute='percentual_pl') | max %}
+<div class="page">
+  <div class="page-num">5 de 8</div>
+  <div class="section-block">
+    <div class="eyebrow">Concentração individual</div>
+    <div class="h2">As {{ data.top_10_posicoes|length }} maiores posições da carteira</div>
+    <div class="rule"></div>
+    <div class="card">
+      <div class="card-title">% do PL por posição</div>
+      <svg viewBox="0 0 560 {{ data.top_10_posicoes|length * 33 }}">
+        {% for pos in data.top_10_posicoes %}
+        {% set y = loop.index0 * 33 %}
+        {% set w = (pos.percentual_pl / max_top) * 295 %}
+        <text x="195" y="{{ y + 15 }}" text-anchor="end" class="hbar-label">{{ pos.nome if pos.nome|length < 34 else pos.nome[:31] + "…" }}</text>
+        <rect x="205" y="{{ y }}" width="{{ w }}" height="21" rx="4" fill="{{ palette[loop.index0 % palette|length] }}"/>
+        <text x="{{ 205 + w + 8 }}" y="{{ y + 15 }}" class="hbar-value">{{ "%.1f"|format(pos.percentual_pl) }}%</text>
+        {% endfor %}
+      </svg>
+    </div>
+    {% if data.leitura_top10 %}<p class="lede" style="margin-top:10px;">{{ data.leitura_top10 }}</p>{% endif %}
+  </div>
+</div>
+{% endif %}
+
+<!-- ============ PÁGINA 6 — RISCOS E DESTAQUES ============ -->
+{% if data.riscos_identificados or data.destaques_positivos %}
+<div class="page">
+  <div class="page-num">6 de 8</div>
+  {% if data.riscos_identificados %}
+  <div class="section-block">
+    <div class="eyebrow">Riscos</div>
+    <div class="h2">Quais são os riscos desta carteira?</div>
+    <div class="rule"></div>
+    <div class="risk-grid">
+      {% for r in data.riscos_identificados %}
+      <div class="risk-card"><h4>{{ loop.index }}. {{ r.titulo }}</h4><p>{{ r.descricao }}</p></div>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+
+  {% if data.destaques_positivos %}
+  <div class="section-block" style="margin-top:20px;">
+    <div class="eyebrow">Destaques positivos</div>
+    <div class="h3">O que está funcionando bem</div>
+    <div class="rule"></div>
+    <div class="hl-grid">
+      {% for h in data.destaques_positivos %}
+      <div class="hl-card">
+        <div class="hl-top"><span class="hl-name">{{ h.nome }}</span><span class="hl-meta">{{ h.instituicao_peso }}</span></div>
+        <p class="hl-desc">{{ h.descricao }}</p>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+</div>
+{% endif %}
+
+<!-- ============ PÁGINA 7 — TABELA DE ATENÇÃO + PRÓXIMOS PASSOS ============ -->
+<div class="page">
+  <div class="page-num">7 de 8</div>
+  <div class="section-block">
+    <div class="eyebrow">Pontos de atenção</div>
+    <div class="h2">Ativos que merecem revisão prioritária</div>
+    <div class="rule"></div>
+    {% if ativos_ruins %}
+    <p class="lede" style="margin-bottom:8px;">
+      Ativos classificados como <b>Ruim</b> (abaixo de 95% do CDI equivalente), ordenados pelo peso na carteira:
+    </p>
+    <table class="riskt">
+      <tr><th>Ativo</th><th>Instituição</th><th>% PL</th><th>% CDI equiv.</th></tr>
+      {% for a in ativos_ruins | sort(attribute='percentual_pl', reverse=true) %}
+      <tr>
+        <td class="t-asset">{{ a.nome }}</td>
+        <td class="t-bank">{{ a.instituicao or "—" }}</td>
+        <td class="t-pl">{{ "%.1f"|format(a.percentual_pl) }}%</td>
+        <td class="t-cdi">{{ ("%.0f"|format(a.percentual_cdi_equivalente) + "% CDI") if a.percentual_cdi_equivalente is not none else "—" }}</td>
+      </tr>
+      {% endfor %}
+    </table>
+    {% else %}
+    <p class="lede">Nenhum ativo foi classificado como "Ruim" nesta carteira.</p>
+    {% endif %}
+    {% if data.observacao_outliers %}
+    <div class="callout warn" style="margin-top:14px;">
+      <b>Observação:</b> {{ data.observacao_outliers }}
+    </div>
+    {% endif %}
+  </div>
+
+  {% if data.proximos_passos %}
+  <div class="section-block" style="margin-top:22px;">
+    <div class="eyebrow">Próximos passos sugeridos</div>
+    <div class="h3">Pontos a serem avaliados</div>
+    <div class="rule"></div>
+    <ul class="clean" style="font-size: 10.2pt;">
+      {% for passo in data.proximos_passos %}<li>{{ passo }}</li>{% endfor %}
+    </ul>
+  </div>
+  {% endif %}
+</div>
+
+<!-- ============ PÁGINA 8 — RESUMO + DISCLAIMER ============ -->
+<div class="page">
+  <div class="page-num">8 de 8</div>
+  <div class="section-block">
+    <div class="eyebrow">Resumo em números</div>
+    <div class="h2">A carteira em uma tela</div>
+    <div class="rule"></div>
+    <table class="mini">
+      <tr><td>Patrimônio distribuído em</td><td class="num">{{ total_ativos }} ativos · {{ instituicoes|length }} instituições</td></tr>
+      {% if maior_instituicao %}<tr><td>Concentração na maior instituição</td><td class="num">{{ maior_instituicao.instituicao }} · {{ "%.1f"|format(maior_instituicao.percentual_pl) }}% do PL</td></tr>{% endif %}
+      {% if data.top_10_posicoes %}<tr><td>Concentração na maior posição individual</td><td class="num">{{ data.top_10_posicoes[0].nome }} · {{ "%.1f"|format(data.top_10_posicoes[0].percentual_pl) }}% do PL</td></tr>{% endif %}
+      {% for item in data.distribuicao_qualidade %}
+      <tr><td>Ativos classificados como {{ item.classificacao|lower }}</td><td class="num">{{ "%.1f"|format(item.percentual_pl) }}% do PL</td></tr>
+      {% endfor %}
+    </table>
+  </div>
+
+  <div class="section-block" style="margin-top: 26px;">
+    <div class="callout" style="font-size: 8.7pt; color:#5c6b73; line-height:1.65;">
+      <b>Aviso legal:</b> Este material é informativo, não constitui recomendação de investimento, análise
+      de crédito formal ou aconselhamento financeiro personalizado, e não substitui a avaliação de um
+      profissional certificado. A classificação de cada ativo segue uma régua objetiva de comparação ao
+      CDI (com ajuste de equivalência tributária para ativos isentos de IR) e não avalia outros fatores
+      como qualidade de crédito do emissor de forma individualizada. Rentabilidade passada não representa
+      garantia de resultados futuros.{% if data.contexto_mercado.data_referencia_indices %} CDI, Selic e
+      IPCA de referência: {{ data.contexto_mercado.data_referencia_indices }}.{% endif %}
+    </div>
+  </div>
+</div>
+
+</body>
+</html>
