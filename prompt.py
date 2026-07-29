@@ -89,7 +89,8 @@ Regras importantes:
   o documento genuinamente não trouxer nenhum número de rentabilidade.
 - "serie_historica": preencha apenas se o documento tiver de fato uma tabela ou gráfico com
   rentabilidade mês a mês. Não tente reconstruir uma série mensal a partir de números acumulados.
-  Se não houver essa granularidade, deixe como array vazio [].
+  Se não houver essa granularidade, deixe como array vazio []. Se a série tiver mais de 24 meses,
+  inclua apenas os 24 meses mais recentes (do mais antigo pro mais recente dentro dessa janela).
 - Números de percentual sempre como number (ex: 12.5, não "12,5%")
 - "composicao_carteira": use as categorias como aparecem no documento (ex: "Títulos Públicos",
   "Crédito Privado", "Ações", "Caixa"). Deixe como [] se o documento não detalhar a composição.
