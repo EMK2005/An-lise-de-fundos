@@ -134,13 +134,16 @@ def extract_fund_data(pdf_bytes: bytes, prompt_text: str) -> dict:
     """Envia o PDF pra Claude e retorna os dados estruturados do fundo.
     Cacheado por (hash do PDF + texto do prompt): reprocessar o mesmo PDF com o
     mesmo prompt não gasta tokens de novo, mas qualquer alteração no prompt.py
-    invalida o cache automaticamente e força uma nova chamada à API."""
+    invalida o cache automaticamente e força uma nova chamada à API.
+    Usa streaming (em vez de messages.create simples) pra evitar o limite prático
+    de tokens de saída de chamadas não-streaming, permitindo um max_tokens maior
+    sem custo adicional real (você paga pelos tokens gerados, não pelo teto)."""
     client = get_client()
     pdf_b64 = base64.standard_b64encode(pdf_bytes).decode("utf-8")
 
-    message = client.messages.create(
+    with client.messages.stream(
         model=MODEL,
-        max_tokens=8000,
+        max_tokens=16000,
         messages=[
             {
                 "role": "user",
@@ -157,7 +160,10 @@ def extract_fund_data(pdf_bytes: bytes, prompt_text: str) -> dict:
                 ],
             }
         ],
-    )
+    ) as stream:
+        for _ in stream.text_stream:
+            pass  # consome o stream; não precisamos exibir token a token na UI
+        message = stream.get_final_message()
 
     raw_text = "".join(block.text for block in message.content if block.type == "text")
 
