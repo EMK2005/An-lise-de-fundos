@@ -12,6 +12,53 @@ st.set_page_config(page_title="Analisador de fundos", layout="wide")
 
 MODEL = "claude-sonnet-5"
 
+# Schema completo esperado pelo template. Qualquer chave ausente na resposta do
+# modelo (por exemplo, uma análise feita antes de adicionarmos um campo novo)
+# é preenchida com o valor default abaixo, em vez de quebrar o Jinja2.
+DEFAULT_DATA = {
+    "fundo": {
+        "nome": None, "tipo": None, "classificacao_anbima": None, "gestora": None,
+        "administrador": None, "publico_alvo": None, "data_referencia": None,
+    },
+    "resumo_executivo": None,
+    "score_geral": None,
+    "score_justificativa": None,
+    "rentabilidade": {
+        "benchmark_nome": None, "serie_historica": [], "rentabilidade_12m_fundo": None,
+        "rentabilidade_12m_benchmark": None, "rentabilidade_24m_fundo": None,
+        "rentabilidade_inicio_fundo": None, "percentual_do_benchmark": None,
+    },
+    "risco": {
+        "classificacao_risco": None, "escala_risco_1a5": None, "volatilidade_12m": None,
+        "drawdown_maximo": None, "indice_sharpe": None,
+    },
+    "taxas": {
+        "taxa_administracao": None, "taxa_performance": None, "taxa_entrada": None,
+        "taxa_saida": None, "aplicacao_inicial_minima": None, "prazo_resgate": None,
+    },
+    "composicao_carteira": [],
+    "patrimonio_liquido": None,
+    "numero_cotistas": None,
+    "riscos_principais": [],
+    "pontos_atencao": [],
+}
+
+
+def fill_defaults(data: dict, defaults: dict) -> dict:
+    """Preenche recursivamente campos ausentes de `data` com os valores de `defaults`,
+    sem sobrescrever nada que já exista."""
+    data = data or {}
+    result = {}
+    for key, default_value in defaults.items():
+        if isinstance(default_value, dict):
+            result[key] = fill_defaults(data.get(key), default_value)
+        else:
+            result[key] = data.get(key, default_value)
+    for key, value in data.items():
+        if key not in result:
+            result[key] = value
+    return result
+
 
 @st.cache_resource
 def get_client():
@@ -64,6 +111,7 @@ def extract_fund_data(pdf_bytes: bytes) -> dict:
 
 
 def render_report(data: dict) -> str:
+    data = fill_defaults(data, DEFAULT_DATA)
     with open("template.html", "r", encoding="utf-8") as f:
         template = Template(f.read())
     return template.render(data=data)
