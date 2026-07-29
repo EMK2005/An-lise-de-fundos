@@ -18,9 +18,11 @@ qualitativa mesmo quando alguns números faltarem).
     "publico_alvo": "string ou null (ex: Investidor Geral, Qualificado, Profissional)",
     "data_referencia": "string ou null (mês/ano do documento)"
   },
-  "resumo_executivo": "string com 2 a 3 frases resumindo o fundo e seu posicionamento",
+  "resumo_executivo": "string com no MÁXIMO 2 frases curtas (até ~200 caracteres no total) resumindo
+    o fundo e seu posicionamento",
   "score_geral": "number de 0 a 100, sua avaliação geral do fundo ponderando retorno, risco e custo",
-  "score_justificativa": "string com 1 a 2 frases explicando por que você deu essa nota",
+  "score_justificativa": "string com 1 frase curta e direta (até ~140 caracteres) explicando por que
+    você deu essa nota",
   "score_dimensoes": {
     "retorno": "number de 0 a 100, avaliando o retorno ajustado ao risco frente ao benchmark",
     "risco": "number de 0 a 100, onde 100 = risco muito bem controlado/adequado ao tipo de fundo",
@@ -41,10 +43,10 @@ qualitativa mesmo quando alguns números faltarem).
     "rentabilidade_inicio_fundo": number ou null,
     "percentual_do_benchmark": number ou null
   },
-  "analise_oportunidade_cdi": "string com 3 a 5 frases avaliando se o fundo entrega retorno que justifique
-    o risco e o custo frente ao CDI (ou outro benchmark relevante), citando números concretos do
-    documento (% do CDI em diferentes janelas, consistência ao longo do tempo, comparação com a
-    categoria do fundo quando possível)",
+  "analise_oportunidade_cdi": "string com no MÁXIMO 3 frases curtas e objetivas (até ~400 caracteres
+    no total) avaliando se o fundo entrega retorno que justifique o risco e o custo frente ao CDI
+    (ou outro benchmark relevante), citando 1 ou 2 números concretos do documento (ex: % do CDI em
+    alguma janela). Vá direto ao ponto, sem introduções ou floreios.",
   "risco": {
     "classificacao_risco": "string ou null (ex: Baixo, Moderado, Alto, Muito Alto)",
     "escala_risco_1a5": number ou null,
@@ -52,10 +54,9 @@ qualitativa mesmo quando alguns números faltarem).
     "drawdown_maximo": number ou null,
     "indice_sharpe": number ou null
   },
-  "analise_risco": "string com 3 a 5 frases detalhando as fontes de risco do fundo (ex: risco de
-    crédito, risco de mercado/juros, concentração, risco de liquidez), o que a volatilidade e o
-    drawdown informado dizem na prática sobre possíveis perdas, e se o nível de risco é coerente
-    com o retorno entregue",
+  "analise_risco": "string com no MÁXIMO 3 frases curtas e objetivas (até ~400 caracteres no total)
+    sobre as principais fontes de risco do fundo e se o nível de risco é coerente com o retorno
+    entregue. Vá direto ao ponto, sem introduções ou floreios.",
   "taxas": {
     "taxa_administracao": number ou null,
     "taxa_performance": "string ou null",
@@ -69,10 +70,12 @@ qualitativa mesmo quando alguns números faltarem).
   ],
   "patrimonio_liquido": "string ou null",
   "numero_cotistas": number ou null,
-  "pontos_positivos": ["string — pontos fortes concretos do fundo, com números quando possível"],
-  "riscos_principais": ["string — riscos concretos e específicos deste fundo, não genéricos"],
-  "pontos_atencao": ["string — alertas práticos para quem for investir (ex: liquidez longa, taxa
-    de performance, concentração)"]
+  "pontos_positivos": ["string curta (até ~90 caracteres) — pontos fortes concretos do fundo, com
+    números quando possível"],
+  "riscos_principais": ["string curta (até ~90 caracteres) — riscos concretos e específicos deste
+    fundo, não genéricos"],
+  "pontos_atencao": ["string curta (até ~90 caracteres) — alertas práticos para quem for investir
+    (ex: liquidez longa, taxa de performance, concentração)"]
 }
 
 Regras importantes:
@@ -97,5 +100,8 @@ Regras importantes:
 - Os campos de análise textual ("analise_oportunidade_cdi", "analise_risco", "pontos_positivos",
   "riscos_principais", "pontos_atencao") devem ser específicos deste fundo, citando números e fatos
   do documento — evite frases genéricas que serviriam para qualquer fundo.
+- SEJA CONCISO em TODOS os campos de texto livre. Respeite os limites de caracteres indicados no
+  schema. Prefira frases curtas e diretas a explicações longas. Corte qualquer introdução, ressalva
+  ou repetição que não agregue informação nova — cada frase deve trazer um fato ou número concreto.
 - Responda em português do Brasil
 """
