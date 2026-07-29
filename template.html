@@ -375,6 +375,15 @@ function showEmptyState(canvasId, message) {
 // Remove pares onde tanto fundo quanto benchmark são nulos/indefinidos
 function hasValidNumber(v) { return typeof v === 'number' && !isNaN(v); }
 
+// Se o Chart.js não carregou (ex: CDN bloqueado pela rede), avisa em todos os
+// gráficos de uma vez em vez de cada um falhar silenciosamente com erro genérico.
+const chartLibLoaded = typeof Chart !== 'undefined';
+if (!chartLibLoaded) {
+  ['chartRetornosPeriodo', 'chartRentabilidade', 'chartComposicao', 'chartScoreDimensoes'].forEach(id => {
+    showEmptyState(id, 'A biblioteca de gráficos (Chart.js) não carregou — verifique sua conexão ou se o domínio cdnjs.cloudflare.com está bloqueado na sua rede.');
+  });
+}
+
 {% if data.rentabilidade.retornos_por_periodo %}
 (function() {
   const raw = {{ data.rentabilidade.retornos_por_periodo | tojson }};
@@ -396,7 +405,7 @@ function hasValidNumber(v) { return typeof v === 'number' && !isNaN(v); }
         scales: { y: { ticks: { callback: v => v + '%', font: { size: 10 } } }, x: { ticks: { font: { size: 10 } } } }
       }
     });
-  } catch (e) { showEmptyState('chartRetornosPeriodo', 'Não foi possível montar este gráfico.'); }
+  } catch (e) { showEmptyState('chartRetornosPeriodo', 'Não foi possível montar este gráfico (' + e.message + ').'); }
 })();
 {% endif %}
 
@@ -430,7 +439,7 @@ function hasValidNumber(v) { return typeof v === 'number' && !isNaN(v); }
         scales: { y: { ticks: { callback: v => v + '%', font: { size: 10 } } }, x: { ticks: { font: { size: 10 } } } }
       }
     });
-  } catch (e) { showEmptyState('chartRentabilidade', 'Não foi possível montar este gráfico.'); }
+  } catch (e) { showEmptyState('chartRentabilidade', 'Não foi possível montar este gráfico (' + e.message + ').'); }
 })();
 {% endif %}
 
@@ -451,7 +460,7 @@ function hasValidNumber(v) { return typeof v === 'number' && !isNaN(v); }
       },
       options: { plugins: { legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 10.5 } } } } }
     });
-  } catch (e) { showEmptyState('chartComposicao', 'Não foi possível montar este gráfico.'); }
+  } catch (e) { showEmptyState('chartComposicao', 'Não foi possível montar este gráfico (' + e.message + ').'); }
 })();
 {% endif %}
 
@@ -480,7 +489,7 @@ function hasValidNumber(v) { return typeof v === 'number' && !isNaN(v); }
         scales: { x: { min: 0, max: 100, ticks: { font: { size: 10 } } }, y: { ticks: { font: { size: 11 } } } }
       }
     });
-  } catch (e) { showEmptyState('chartScoreDimensoes', 'Não foi possível montar este gráfico.'); }
+  } catch (e) { showEmptyState('chartScoreDimensoes', 'Não foi possível montar este gráfico (' + e.message + ').'); }
 })();
 {% endif %}
 </script>
