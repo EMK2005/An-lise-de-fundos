@@ -17,6 +17,8 @@ documento, use null (não invente valores).
     "data_referencia": "string ou null (mês/ano do documento)"
   },
   "resumo_executivo": "string com 2 a 3 frases resumindo o fundo e seu posicionamento",
+  "score_geral": "number de 0 a 100, sua avaliação geral do fundo ponderando retorno, risco e custo",
+  "score_justificativa": "string com 1 a 2 frases explicando por que você deu essa nota",
   "rentabilidade": {
     "benchmark_nome": "string ou null (ex: CDI, IBOVESPA, IPCA+)",
     "serie_historica": [
@@ -53,6 +55,12 @@ documento, use null (não invente valores).
 }
 
 Regras importantes:
+- "score_geral": pondere retorno ajustado ao risco (ex: % do CDI/benchmark, Sharpe), nível de risco
+  compatível com o tipo de fundo, e custo (taxas) frente a fundos similares. Um fundo mediano, sem
+  destaques nem problemas, deve ficar perto de 60-65. Reserve 80+ para fundos com desempenho e
+  consistência claramente acima da média. Reserve abaixo de 50 para fundos com sinais de alerta
+  reais (ex: taxas muito altas, desempenho consistentemente abaixo do benchmark, alta volatilidade
+  sem contrapartida de retorno).
 - Números de percentual sempre como number (ex: 12.5, não "12,5%")
 - "serie_historica": inclua os períodos disponíveis no documento, do mais antigo pro mais recente
 - "composicao_carteira": use as categorias como aparecem no documento (ex: "Títulos Públicos", "Crédito Privado", "Ações", "Caixa")
