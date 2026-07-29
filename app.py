@@ -104,12 +104,11 @@ def main():
 
     if report_data:
         html = render_report(report_data)
-        st.components.v1.html(html, height=2600, scrolling=True)
 
         col1, col2 = st.columns([1, 4])
         with col1:
             st.download_button(
-                "Baixar relatório (HTML)",
+                "⬇️ Baixar relatório (HTML)",
                 data=html,
                 file_name=f"analise_{report_data.get('fundo', {}).get('nome', 'fundo')}.html",
                 mime="text/html",
@@ -117,6 +116,8 @@ def main():
         with col2:
             with st.expander("Ver dados extraídos (JSON)"):
                 st.json(report_data)
+
+        st.components.v1.html(html, height=2600, scrolling=True)
 
 
 if __name__ == "__main__":
