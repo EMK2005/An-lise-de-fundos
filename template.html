@@ -36,6 +36,9 @@
   section+section{border-top:1px solid var(--border);}
   .section-label{font-size:10px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--text-faint);margin-bottom:6px;}
   .section-title{font-family:'DM Serif Display',Georgia,serif;font-size:22px;font-weight:400;color:var(--text);margin-bottom:20px;}
+  .prose-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:20px 22px;margin-bottom:16px;}
+  .prose-card h3{font-size:13px;font-weight:600;color:var(--text);margin-bottom:8px;display:flex;align-items:center;gap:8px;}
+  .prose-card p{font-size:13px;color:var(--text-muted);line-height:1.65;}
 
   /* ── RESUMO / SCORE CARD ── */
   .score-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:24px 26px;position:relative;overflow:hidden;margin-bottom:16px;}
@@ -51,13 +54,16 @@
   .alert-box{border-radius:10px;padding:14px 18px;margin-top:14px;display:flex;align-items:flex-start;gap:12px;}
   .alert-box.red{background:var(--red-bg);border:1px solid #F0C0C0;}
   .alert-box.blue{background:var(--blue-bg);border:1px solid #C0D5EC;}
+  .alert-box.green{background:var(--green-bg);border:1px solid #BFDFCB;}
   .alert-icon{font-size:17px;flex-shrink:0;margin-top:1px;}
   .alert-title{font-size:13px;font-weight:600;margin-bottom:3px;}
   .alert-box.red .alert-title{color:var(--red);}
   .alert-box.blue .alert-title{color:var(--blue);}
+  .alert-box.green .alert-title{color:var(--green);}
   .alert-body{font-size:12px;line-height:1.55;}
   .alert-box.red .alert-body{color:#6B2020;}
   .alert-box.blue .alert-body{color:#1A3D5C;}
+  .alert-box.green .alert-body{color:#1A4D34;}
 
   /* ── STATS ── */
   .stat-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:12px;}
@@ -81,6 +87,7 @@
   .chart-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:18px;}
   .chart-title{font-size:13px;font-weight:600;color:var(--text);margin-bottom:2px;}
   .chart-sub{font-size:11px;color:var(--text-faint);margin-bottom:14px;}
+  .chart-empty{display:flex;align-items:center;justify-content:center;height:100%;font-size:12px;color:var(--text-faint);text-align:center;padding:0 20px;}
 
   /* ── FUND DETAIL CARD ── */
   .fund-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;overflow:hidden;}
@@ -100,13 +107,14 @@
   .risk-section-title{font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--text-faint);margin-bottom:9px;}
   .risk-tags{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:9px;}
   .risk-tag{font-size:10.5px;padding:3px 9px;border-radius:100px;font-weight:500;background:var(--amber-bg);color:var(--amber);}
-  .risk-text{font-size:12px;color:var(--text-muted);line-height:1.55;}
   .profile-section{margin-top:14px;}
   .profile-title{font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--text-faint);margin-bottom:6px;}
   .profile-text{font-size:12px;color:var(--text-muted);line-height:1.55;}
 
   .tag-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:10px;}
-  .tag-list li{padding:12px 14px;background:var(--gold-bg);border-left:3px solid var(--gold);border-radius:0 8px 8px 0;font-size:13px;}
+  .tag-list li{padding:12px 14px;border-radius:0 8px 8px 0;font-size:13px;}
+  .tag-list.gold li{background:var(--gold-bg);border-left:3px solid var(--gold);}
+  .tag-list.green li{background:var(--green-bg);border-left:3px solid var(--green);color:#1A4D34;}
 
   .footer{padding:20px 40px;font-size:11px;color:var(--text-faint);text-align:center;border-top:1px solid var(--border);}
 
@@ -124,6 +132,8 @@
 {% set score_badge_bg = ('var(--green-bg)' if score >= 80 else 'var(--blue-bg)' if score >= 65 else 'var(--amber-bg)' if score >= 50 else 'var(--red-bg)') if score is not none else 'var(--gold-bg)' %}
 {% set risk_level = data.risco.escala_risco_1a5 or 3 %}
 {% set risk_color = '#1E6B3C' if risk_level <= 2 else ('#7A4A10' if risk_level == 3 else '#8A1C1C') %}
+{% set has_return_chart = data.rentabilidade.serie_historica or data.rentabilidade.retornos_por_periodo %}
+{% set has_any_chart = has_return_chart or data.composicao_carteira or data.score_dimensoes %}
 
 <header class="site-header">
   <div class="container">
@@ -169,6 +179,16 @@
       {% endif %}
     </div>
 
+    {% if data.pontos_positivos %}
+    <div class="alert-box green">
+      <span class="alert-icon">✓</span>
+      <div>
+        <div class="alert-title">Pontos positivos</div>
+        <div class="alert-body">{{ data.pontos_positivos | join(' · ') }}</div>
+      </div>
+    </div>
+    {% endif %}
+
     {% if data.pontos_atencao %}
     <div class="alert-box red">
       <span class="alert-icon">⚠️</span>
@@ -181,20 +201,54 @@
   </div>
 </section>
 
+<!-- ANÁLISE QUALITATIVA -->
+{% if data.analise_oportunidade_cdi or data.analise_risco %}
+<section>
+  <div class="container">
+    <p class="section-label">Análise aprofundada</p>
+    <h2 class="section-title">Oportunidade e risco em detalhe</h2>
+
+    {% if data.analise_oportunidade_cdi %}
+    <div class="prose-card">
+      <h3>📈 Oportunidade vs. {{ data.rentabilidade.benchmark_nome or "benchmark" }}</h3>
+      <p>{{ data.analise_oportunidade_cdi }}</p>
+    </div>
+    {% endif %}
+
+    {% if data.analise_risco %}
+    <div class="prose-card">
+      <h3>🛡️ Análise de risco</h3>
+      <p>{{ data.analise_risco }}</p>
+    </div>
+    {% endif %}
+  </div>
+</section>
+{% endif %}
+
 <!-- GRÁFICOS -->
-{% if data.rentabilidade.serie_historica or data.composicao_carteira %}
+{% if has_any_chart %}
 <section>
   <div class="container">
     <p class="section-label">Visualizações</p>
     <h2 class="section-title">Análise gráfica</h2>
     <div class="charts-grid">
+
+      {% if data.rentabilidade.retornos_por_periodo %}
+      <div class="chart-card">
+        <div class="chart-title">Retorno por janela vs. {{ data.rentabilidade.benchmark_nome or "benchmark" }}</div>
+        <div class="chart-sub">Comparação em diferentes períodos (%)</div>
+        <div style="position:relative;height:240px;"><canvas id="chartRetornosPeriodo"></canvas></div>
+      </div>
+      {% endif %}
+
       {% if data.rentabilidade.serie_historica %}
       <div class="chart-card">
-        <div class="chart-title">Rentabilidade vs. {{ data.rentabilidade.benchmark_nome or "benchmark" }}</div>
-        <div class="chart-sub">Evolução mensal (%)</div>
+        <div class="chart-title">Rentabilidade mensal vs. {{ data.rentabilidade.benchmark_nome or "benchmark" }}</div>
+        <div class="chart-sub">Evolução mês a mês (%)</div>
         <div style="position:relative;height:240px;"><canvas id="chartRentabilidade"></canvas></div>
       </div>
       {% endif %}
+
       {% if data.composicao_carteira %}
       <div class="chart-card">
         <div class="chart-title">Composição da carteira</div>
@@ -202,6 +256,15 @@
         <div style="position:relative;height:240px;"><canvas id="chartComposicao"></canvas></div>
       </div>
       {% endif %}
+
+      {% if data.score_dimensoes %}
+      <div class="chart-card">
+        <div class="chart-title">Score por dimensão</div>
+        <div class="chart-sub">Retorno, risco, custo e liquidez (0 a 100)</div>
+        <div style="position:relative;height:240px;"><canvas id="chartScoreDimensoes"></canvas></div>
+      </div>
+      {% endif %}
+
     </div>
   </div>
 </section>
@@ -275,7 +338,7 @@
 
         {% if data.riscos_principais %}
         <div class="risk-section">
-          <div class="risk-section-title">Análise de risco</div>
+          <div class="risk-section-title">Riscos específicos deste fundo</div>
           <div class="risk-tags">
             {% for r in data.riscos_principais %}<span class="risk-tag">{{ r if r|length < 40 else r[:37] + "…" }}</span>{% endfor %}
           </div>
@@ -300,45 +363,125 @@
 </main>
 
 <script>
-{% if data.rentabilidade.serie_historica %}
-new Chart(document.getElementById('chartRentabilidade'), {
-  type: 'line',
-  data: {
-    labels: {{ data.rentabilidade.serie_historica | map(attribute='periodo') | list | tojson }},
-    datasets: [
-      {
-        label: '{{ data.fundo.nome or "Fundo" }}',
-        data: {{ data.rentabilidade.serie_historica | map(attribute='fundo') | list | tojson }},
-        borderColor: '#132A46', backgroundColor: 'rgba(19,42,70,.08)',
-        borderWidth: 2, tension: .3, fill: true, pointRadius: 0
+// Utilitário: mostra uma mensagem no lugar do gráfico quando não há dados válidos,
+// em vez de deixar o canvas em branco sem explicação.
+function showEmptyState(canvasId, message) {
+  const canvas = document.getElementById(canvasId);
+  if (!canvas) return;
+  const wrap = canvas.parentElement;
+  wrap.innerHTML = '<div class="chart-empty">' + message + '</div>';
+}
+
+// Remove pares onde tanto fundo quanto benchmark são nulos/indefinidos
+function hasValidNumber(v) { return typeof v === 'number' && !isNaN(v); }
+
+{% if data.rentabilidade.retornos_por_periodo %}
+(function() {
+  const raw = {{ data.rentabilidade.retornos_por_periodo | tojson }};
+  const rows = raw.filter(r => hasValidNumber(r.fundo) || hasValidNumber(r.benchmark));
+  if (!rows.length) { showEmptyState('chartRetornosPeriodo', 'Sem dados suficientes no documento para este gráfico.'); return; }
+  try {
+    new Chart(document.getElementById('chartRetornosPeriodo'), {
+      type: 'bar',
+      data: {
+        labels: rows.map(r => r.janela),
+        datasets: [
+          { label: '{{ data.fundo.nome or "Fundo" }}', data: rows.map(r => r.fundo ?? null), backgroundColor: '#132A46', borderRadius: 4 },
+          { label: '{{ data.rentabilidade.benchmark_nome or "Benchmark" }}', data: rows.map(r => r.benchmark ?? null), backgroundColor: '#A9823C', borderRadius: 4 }
+        ]
       },
-      {
-        label: '{{ data.rentabilidade.benchmark_nome or "Benchmark" }}',
-        data: {{ data.rentabilidade.serie_historica | map(attribute='benchmark') | list | tojson }},
-        borderColor: '#A9823C', borderWidth: 2, borderDash: [4,3], tension: .3, pointRadius: 0
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 11 } } } },
+        scales: { y: { ticks: { callback: v => v + '%', font: { size: 10 } } }, x: { ticks: { font: { size: 10 } } } }
       }
-    ]
-  },
-  options: {
-    responsive: true, maintainAspectRatio: false,
-    plugins: { legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 11 } } } },
-    scales: { y: { ticks: { callback: v => v + '%', font: { size: 10 } } }, x: { ticks: { font: { size: 10 } } } }
-  }
-});
+    });
+  } catch (e) { showEmptyState('chartRetornosPeriodo', 'Não foi possível montar este gráfico.'); }
+})();
+{% endif %}
+
+{% if data.rentabilidade.serie_historica %}
+(function() {
+  const raw = {{ data.rentabilidade.serie_historica | tojson }};
+  const rows = raw.filter(r => hasValidNumber(r.fundo) || hasValidNumber(r.benchmark));
+  if (!rows.length) { showEmptyState('chartRentabilidade', 'Sem série mensal detalhada neste documento.'); return; }
+  try {
+    new Chart(document.getElementById('chartRentabilidade'), {
+      type: 'line',
+      data: {
+        labels: rows.map(r => r.periodo),
+        datasets: [
+          {
+            label: '{{ data.fundo.nome or "Fundo" }}',
+            data: rows.map(r => r.fundo ?? null),
+            borderColor: '#132A46', backgroundColor: 'rgba(19,42,70,.08)',
+            borderWidth: 2, tension: .3, fill: true, pointRadius: 0, spanGaps: true
+          },
+          {
+            label: '{{ data.rentabilidade.benchmark_nome or "Benchmark" }}',
+            data: rows.map(r => r.benchmark ?? null),
+            borderColor: '#A9823C', borderWidth: 2, borderDash: [4,3], tension: .3, pointRadius: 0, spanGaps: true
+          }
+        ]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 11 } } } },
+        scales: { y: { ticks: { callback: v => v + '%', font: { size: 10 } } }, x: { ticks: { font: { size: 10 } } } }
+      }
+    });
+  } catch (e) { showEmptyState('chartRentabilidade', 'Não foi possível montar este gráfico.'); }
+})();
 {% endif %}
 
 {% if data.composicao_carteira %}
-new Chart(document.getElementById('chartComposicao'), {
-  type: 'doughnut',
-  data: {
-    labels: {{ data.composicao_carteira | map(attribute='categoria') | list | tojson }},
-    datasets: [{
-      data: {{ data.composicao_carteira | map(attribute='percentual') | list | tojson }},
-      backgroundColor: ['#132A46','#A9823C','#1A4D7A','#1E6B3C','#7A4A10','#5C6570','#D9C08F','#8A1C1C']
-    }]
-  },
-  options: { plugins: { legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 10.5 } } } } }
-});
+(function() {
+  const raw = {{ data.composicao_carteira | tojson }};
+  const rows = raw.filter(r => hasValidNumber(r.percentual) && r.percentual > 0);
+  if (!rows.length) { showEmptyState('chartComposicao', 'Sem dados de composição neste documento.'); return; }
+  try {
+    new Chart(document.getElementById('chartComposicao'), {
+      type: 'doughnut',
+      data: {
+        labels: rows.map(r => r.categoria),
+        datasets: [{
+          data: rows.map(r => r.percentual),
+          backgroundColor: ['#132A46','#A9823C','#1A4D7A','#1E6B3C','#7A4A10','#5C6570','#D9C08F','#8A1C1C']
+        }]
+      },
+      options: { plugins: { legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 10.5 } } } } }
+    });
+  } catch (e) { showEmptyState('chartComposicao', 'Não foi possível montar este gráfico.'); }
+})();
+{% endif %}
+
+{% if data.score_dimensoes %}
+(function() {
+  const dim = {{ data.score_dimensoes | tojson }};
+  const entries = [
+    ['Retorno', dim.retorno], ['Risco', dim.risco], ['Custo', dim.custo], ['Liquidez', dim.liquidez]
+  ].filter(e => hasValidNumber(e[1]));
+  if (!entries.length) { showEmptyState('chartScoreDimensoes', 'Sem dados suficientes para este gráfico.'); return; }
+  try {
+    new Chart(document.getElementById('chartScoreDimensoes'), {
+      type: 'bar',
+      data: {
+        labels: entries.map(e => e[0]),
+        datasets: [{
+          data: entries.map(e => e[1]),
+          backgroundColor: entries.map(e => e[1] >= 80 ? '#1E6B3C' : e[1] >= 65 ? '#1A4D7A' : e[1] >= 50 ? '#7A4A10' : '#8A1C1C'),
+          borderRadius: 4
+        }]
+      },
+      options: {
+        indexAxis: 'y',
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: { x: { min: 0, max: 100, ticks: { font: { size: 10 } } }, y: { ticks: { font: { size: 11 } } } }
+      }
+    });
+  } catch (e) { showEmptyState('chartScoreDimensoes', 'Não foi possível montar este gráfico.'); }
+})();
 {% endif %}
 </script>
 </body>
