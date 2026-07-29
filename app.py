@@ -70,6 +70,14 @@ def get_client():
     return anthropic.Anthropic(api_key=st.secrets["ANTHROPIC_API_KEY"])
 
 
+class ResponseTruncatedError(Exception):
+    """A resposta da Claude foi cortada por atingir o limite de max_tokens antes
+    de terminar o JSON. Guarda o texto parcial pra facilitar o debug."""
+    def __init__(self, partial_text: str):
+        self.partial_text = partial_text
+        super().__init__("Resposta cortada por atingir max_tokens")
+
+
 def parse_json_response(raw_text: str) -> dict:
     """Remove eventuais cercas de markdown e faz o parse do JSON retornado pelo modelo."""
     text = raw_text.strip()
@@ -94,7 +102,7 @@ def extract_fund_data(pdf_bytes: bytes, prompt_text: str) -> dict:
 
     message = client.messages.create(
         model=MODEL,
-        max_tokens=4000,
+        max_tokens=8000,
         messages=[
             {
                 "role": "user",
@@ -114,6 +122,10 @@ def extract_fund_data(pdf_bytes: bytes, prompt_text: str) -> dict:
     )
 
     raw_text = "".join(block.text for block in message.content if block.type == "text")
+
+    if message.stop_reason == "max_tokens":
+        raise ResponseTruncatedError(raw_text)
+
     return parse_json_response(raw_text)
 
 
@@ -165,6 +177,16 @@ def main():
         with st.spinner("Lendo o documento e extraindo os dados com a Claude..."):
             try:
                 data = extract_fund_data(file_bytes, EXTRACTION_PROMPT)
+            except ResponseTruncatedError as e:
+                st.error(
+                    "A resposta da Claude foi cortada antes de terminar (o documento é "
+                    "extenso e o limite de tokens de saída não foi suficiente). Se isso "
+                    "persistir, pode ser necessário aumentar ainda mais o `max_tokens` "
+                    "em app.py."
+                )
+                with st.expander("Ver resposta parcial (debug)"):
+                    st.code(e.partial_text)
+                return
             except json.JSONDecodeError:
                 st.error(
                     "Não consegui interpretar a resposta do modelo em JSON. "
