@@ -84,9 +84,11 @@ def parse_json_response(raw_text: str) -> dict:
 
 
 @st.cache_data(show_spinner=False)
-def extract_fund_data(pdf_bytes: bytes) -> dict:
+def extract_fund_data(pdf_bytes: bytes, prompt_text: str) -> dict:
     """Envia o PDF pra Claude e retorna os dados estruturados do fundo.
-    Cacheado por hash do conteúdo do arquivo: reprocessar o mesmo PDF não gasta tokens de novo."""
+    Cacheado por (hash do PDF + texto do prompt): reprocessar o mesmo PDF com o
+    mesmo prompt não gasta tokens de novo, mas qualquer alteração no prompt.py
+    invalida o cache automaticamente e força uma nova chamada à API."""
     client = get_client()
     pdf_b64 = base64.standard_b64encode(pdf_bytes).decode("utf-8")
 
@@ -105,7 +107,7 @@ def extract_fund_data(pdf_bytes: bytes) -> dict:
                             "data": pdf_b64,
                         },
                     },
-                    {"type": "text", "text": EXTRACTION_PROMPT},
+                    {"type": "text", "text": prompt_text},
                 ],
             }
         ],
@@ -115,8 +117,30 @@ def extract_fund_data(pdf_bytes: bytes) -> dict:
     return parse_json_response(raw_text)
 
 
+# Mapeia a classificação textual de risco pra escala 1-5, usada como fallback
+# quando o modelo não retorna o número (evita o medidor de risco ficar com uma
+# cor que não bate com o texto, ex: "Baixo" pintado de âmbar).
+def infer_risk_scale(classificacao: str | None):
+    if not classificacao:
+        return None
+    label = classificacao.lower()
+    if "baixíssimo" in label or "muito baixo" in label:
+        return 1
+    if "baixo" in label:
+        return 2 if "moderado" in label else 1
+    if "muito alto" in label:
+        return 5
+    if "alto" in label:
+        return 3 if "moderado" in label else 4
+    if "moderado" in label:
+        return 3
+    return None
+
+
 def render_report(data: dict) -> str:
     data = fill_defaults(data, DEFAULT_DATA)
+    if data["risco"]["escala_risco_1a5"] is None:
+        data["risco"]["escala_risco_1a5"] = infer_risk_scale(data["risco"]["classificacao_risco"])
     with open("template.html", "r", encoding="utf-8") as f:
         template = Template(f.read())
     return template.render(data=data)
@@ -140,7 +164,7 @@ def main():
     if st.button("Gerar análise", type="primary"):
         with st.spinner("Lendo o documento e extraindo os dados com a Claude..."):
             try:
-                data = extract_fund_data(file_bytes)
+                data = extract_fund_data(file_bytes, EXTRACTION_PROMPT)
             except json.JSONDecodeError:
                 st.error(
                     "Não consegui interpretar a resposta do modelo em JSON. "
