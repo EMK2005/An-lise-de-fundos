@@ -245,6 +245,90 @@ def render_portfolio_report(data: dict) -> str:
     return template.render(data=data)
 
 
+def _shorten_name(name: str, max_words: int = 3, max_len: int = 24) -> str:
+    """Nome curto pra caber nos rótulos dos gráficos e cards."""
+    if len(name) <= max_len:
+        return name
+    short = " ".join(name.split()[:max_words])
+    return short if len(short) <= max_len else short[: max_len - 1] + "…"
+
+
+def build_comparison_dataset(funds_raw: list[dict]) -> list[dict]:
+    """Normaliza e ordena os relatórios de fundos individuais (já extraídos) pra
+    montar o dataset usado no template comparativo. Não faz nenhuma chamada
+    adicional à API — reaproveita só o que já foi extraído de cada fundo."""
+    enriched = []
+    for raw in funds_raw:
+        d = fill_defaults(raw, DEFAULT_DATA)
+        if d["risco"]["escala_risco_1a5"] is None:
+            d["risco"]["escala_risco_1a5"] = infer_risk_scale(d["risco"]["classificacao_risco"])
+        enriched.append(d)
+
+    # Ordena por score decrescente; fundos sem score vão para o final.
+    enriched.sort(key=lambda d: (d["score_geral"] is not None, d["score_geral"] or -1), reverse=True)
+
+    funds_js = []
+    for i, d in enumerate(enriched):
+        score = d["score_geral"]
+        tag = "caution" if (score is not None and score < 50) else "normal"
+        name = d["fundo"]["nome"] or f"Fundo {i + 1}"
+        classif_risco = d["risco"]["classificacao_risco"]
+
+        risk_tags = []
+        for r in (d["riscos_principais"] or [])[:3]:
+            risk_tags.append(r if len(r) <= 34 else r[:31] + "…")
+
+        why = d["score_justificativa"] or d["resumo_executivo"] or "Sem justificativa detalhada disponível."
+
+        profile_bits = [d["fundo"]["publico_alvo"]]
+        if classif_risco:
+            profile_bits.append(f"Risco {classif_risco.lower()}")
+        profile_text = " · ".join(b for b in profile_bits if b) or "Perfil não informado."
+
+        comp_list = d["composicao_carteira"] or []
+        comp_str = (
+            ", ".join(f"{c['categoria']} {c['percentual']:.0f}%" for c in comp_list[:3])
+            if comp_list
+            else "—"
+        )
+
+        funds_js.append({
+            "id": i,
+            "rank": i + 1,
+            "name": name,
+            "short": _shorten_name(name),
+            "inst": d["fundo"]["gestora"] or "—",
+            "tipo": d["fundo"]["tipo"] or "—",
+            "tag": tag,
+            "score": score,
+            "ret12": d["rentabilidade"]["rentabilidade_12m_fundo"],
+            "cdi12": d["rentabilidade"]["percentual_do_benchmark"],
+            "vol": d["risco"]["volatilidade_12m"],
+            "taxa": d["taxas"]["taxa_administracao"],
+            "sharpe": d["risco"]["indice_sharpe"],
+            "liq": d["taxas"]["prazo_resgate"] or "—",
+            "minApl": d["taxas"]["aplicacao_inicial_minima"] or "—",
+            "pl": d["patrimonio_liquido"] or "—",
+            "riskLevel": d["risco"]["escala_risco_1a5"] or 3,
+            "riskLabel": classif_risco or "—",
+            "riskTags": risk_tags,
+            "why": why,
+            "profileText": profile_text,
+            "comp": comp_str,
+            "retornoInicio": d["rentabilidade"]["rentabilidade_inicio_fundo"],
+        })
+    return funds_js
+
+
+def render_comparison_report(funds_js: list[dict]) -> str:
+    total = len(funds_js)
+    aprovados = sum(1 for f in funds_js if f["tag"] == "normal")
+    atencao = total - aprovados
+    with open("template_comparacao.html", "r", encoding="utf-8") as f:
+        template = Template(f.read())
+    return template.render(funds=funds_js, total=total, aprovados=aprovados, atencao=atencao)
+
+
 def main_fundo():
     st.caption(
         "Anexe a lâmina, fact sheet ou relatório em PDF de um fundo para gerar "
@@ -369,19 +453,95 @@ def main_carteira():
         st.components.v1.html(html, height=2900, scrolling=True)
 
 
+def main_comparacao():
+    st.caption(
+        "Anexe de 2 a 10 PDFs de fundos (lâmina, fact sheet ou relatório) para gerar "
+        "um comparativo com ranking, gráficos e fichas individuais."
+    )
+
+    uploaded_files = st.file_uploader(
+        "PDFs dos fundos", type=["pdf"], accept_multiple_files=True, key="upload_comparacao"
+    )
+
+    if not uploaded_files:
+        return
+
+    if len(uploaded_files) < 2:
+        st.info("Anexe pelo menos 2 fundos para gerar uma comparação.")
+        return
+
+    if len(uploaded_files) > 10:
+        st.warning(
+            f"Você anexou {len(uploaded_files)} fundos. Por enquanto, processo até 10 "
+            "por comparação — os demais serão ignorados nesta rodada."
+        )
+        uploaded_files = uploaded_files[:10]
+
+    files_bytes = [f.read() for f in uploaded_files]
+    combined_hash = hashlib.sha256(b"".join(files_bytes)).hexdigest()[:12]
+
+    if st.button("Gerar comparação", type="primary", key="btn_comparacao"):
+        funds_raw = []
+        progress = st.progress(0.0, text="Iniciando...")
+        for i, (file_obj, file_bytes) in enumerate(zip(uploaded_files, files_bytes)):
+            progress.progress(
+                i / len(uploaded_files),
+                text=f"Analisando {file_obj.name} ({i + 1}/{len(uploaded_files)})...",
+            )
+            try:
+                data = extract_fund_data(file_bytes, EXTRACTION_PROMPT)
+                funds_raw.append(data)
+            except ResponseTruncatedError:
+                st.warning(f"'{file_obj.name}': resposta cortada por limite de tokens — pulado.")
+            except json.JSONDecodeError:
+                st.warning(f"'{file_obj.name}': não consegui interpretar a resposta em JSON — pulado.")
+            except anthropic.APIError as e:
+                st.warning(f"'{file_obj.name}': erro na API ({e}) — pulado.")
+        progress.progress(1.0, text="Concluído.")
+
+        if len(funds_raw) < 2:
+            st.error("Menos de 2 fundos foram processados com sucesso — não é possível comparar.")
+            return
+
+        st.session_state[f"report_comparacao_{combined_hash}"] = funds_raw
+
+    funds_raw = st.session_state.get(f"report_comparacao_{combined_hash}")
+
+    if funds_raw:
+        funds_js = build_comparison_dataset(funds_raw)
+        html = render_comparison_report(funds_js)
+
+        col1, col2 = st.columns([1, 4])
+        with col1:
+            st.download_button(
+                "⬇️ Baixar comparação (HTML)",
+                data=html,
+                file_name="comparacao_fundos.html",
+                mime="text/html",
+                key="download_comparacao",
+            )
+        with col2:
+            with st.expander("Ver dados extraídos (JSON)"):
+                st.json(funds_js)
+
+        st.components.v1.html(html, height=3200, scrolling=True)
+
+
 def main():
     st.title("Analisador de investimentos")
     modo = st.radio(
         "O que você quer analisar?",
-        ["Fundo de investimento", "Carteira de investimentos"],
+        ["Fundo de investimento", "Carteira de investimentos", "Comparação de fundos"],
         horizontal=True,
     )
     st.divider()
 
     if modo == "Fundo de investimento":
         main_fundo()
-    else:
+    elif modo == "Carteira de investimentos":
         main_carteira()
+    else:
+        main_comparacao()
 
 
 if __name__ == "__main__":
