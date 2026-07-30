@@ -382,10 +382,13 @@
 // Utilitário: mostra uma mensagem no lugar do gráfico quando não há dados válidos,
 // em vez de deixar o canvas em branco sem explicação.
 function showEmptyState(canvasId, message) {
+  // Em vez de mostrar uma caixa vazia com mensagem, esconde o card do gráfico
+  // inteiro — mais limpo quando o documento simplesmente não tem aquele dado.
   const canvas = document.getElementById(canvasId);
   if (!canvas) return;
-  const wrap = canvas.parentElement;
-  wrap.innerHTML = '<div class="chart-empty">' + message + '</div>';
+  const card = canvas.closest('.chart-card');
+  if (card) { card.style.display = 'none'; }
+  console.warn('Gráfico '' + canvasId + '' oculto: ' + message);
 }
 
 // Remove pares onde tanto fundo quanto benchmark são nulos/indefinidos
@@ -418,7 +421,7 @@ if (!chartLibLoaded) {
       options: {
         responsive: true, maintainAspectRatio: false,
         plugins: { legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 11 } } } },
-        scales: { y: { ticks: { callback: v => v + '%', font: { size: 10 } } }, x: { ticks: { font: { size: 10 } } } }
+        scales: { y: { ticks: { callback: v => Number(v.toFixed(1)) + '%', font: { size: 10 } } }, x: { ticks: { font: { size: 10 } } } }
       }
     });
   } catch (e) { showEmptyState('chartRetornosPeriodo', 'Não foi possível montar este gráfico (' + e.message + ').'); }
@@ -452,7 +455,7 @@ if (!chartLibLoaded) {
       options: {
         responsive: true, maintainAspectRatio: false,
         plugins: { legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 11 } } } },
-        scales: { y: { ticks: { callback: v => v + '%', font: { size: 10 } } }, x: { ticks: { font: { size: 10 } } } }
+        scales: { y: { ticks: { callback: v => Number(v.toFixed(1)) + '%', font: { size: 10 } } }, x: { ticks: { font: { size: 10 } } } }
       }
     });
   } catch (e) { showEmptyState('chartRentabilidade', 'Não foi possível montar este gráfico (' + e.message + ').'); }
