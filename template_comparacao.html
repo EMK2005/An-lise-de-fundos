@@ -240,10 +240,13 @@ function riskColor(level) {
   return '#8A1C1C';
 }
 function showEmptyState(canvasId, message) {
+  // Em vez de mostrar uma caixa vazia com mensagem, esconde o card do gráfico
+  // inteiro — mais limpo quando o documento simplesmente não tem aquele dado.
   const canvas = document.getElementById(canvasId);
   if (!canvas) return;
-  const wrap = canvas.parentElement;
-  wrap.innerHTML = '<div class="chart-empty">' + message + '</div>';
+  const card = canvas.closest('.chart-card');
+  if (card) { card.style.display = 'none'; }
+  console.warn('Gráfico '' + canvasId + '' oculto: ' + message);
 }
 function hasValidNumber(v) { return typeof v === 'number' && !isNaN(v); }
 
@@ -407,7 +410,7 @@ if (!chartLibLoaded) {
       new Chart(document.getElementById('chartCdi'), {
         type: 'bar',
         data: { labels: cdiData.map(f => f.short), datasets: [{ data: cdiData.map(f => f.cdi12), backgroundColor: '#1A4D7A99', borderRadius: 4 }] },
-        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { ticks:{font:{size:9}, maxRotation:40} }, y: { ticks:{callback:v=>v+'%', font:{size:10}} } } }
+        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { ticks:{font:{size:9}, maxRotation:40} }, y: { ticks:{callback:v=>Number(v.toFixed(1))+'%', font:{size:10}} } } }
       });
     } catch (e) { showEmptyState('chartCdi', 'Não foi possível montar este gráfico (' + e.message + ').'); }
   }
@@ -420,7 +423,7 @@ if (!chartLibLoaded) {
       new Chart(document.getElementById('chartTaxas'), {
         type: 'bar',
         data: { labels: taxaData.map(f => f.short), datasets: [{ data: taxaData.map(f => f.taxa), backgroundColor: '#A9823C99', borderRadius: 4 }] },
-        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { ticks:{font:{size:9}, maxRotation:40} }, y: { beginAtZero:true, ticks:{callback:v=>v+'%', font:{size:10}} } } }
+        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { ticks:{font:{size:9}, maxRotation:40} }, y: { beginAtZero:true, ticks:{callback:v=>Number(v.toFixed(1))+'%', font:{size:10}} } } }
       });
     } catch (e) { showEmptyState('chartTaxas', 'Não foi possível montar este gráfico (' + e.message + ').'); }
   }
