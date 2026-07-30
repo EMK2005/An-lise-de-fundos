@@ -184,7 +184,7 @@ def extract_portfolio_data(pdf_bytes: bytes, prompt_text: str) -> dict:
 
     with client.messages.stream(
         model=MODEL,
-        max_tokens=24000,
+        max_tokens=48000,
         messages=[
             {
                 "role": "user",
