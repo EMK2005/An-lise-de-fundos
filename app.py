@@ -537,15 +537,13 @@ def main():
     st.title("Analisador de investimentos")
     modo = st.radio(
         "O que você quer analisar?",
-        ["Fundo de investimento", "Carteira de investimentos", "Comparação de fundos"],
+        ["Fundo de investimento", "Comparação de fundos"],
         horizontal=True,
     )
     st.divider()
 
     if modo == "Fundo de investimento":
         main_fundo()
-    elif modo == "Carteira de investimentos":
-        main_carteira()
     else:
         main_comparacao()
 
